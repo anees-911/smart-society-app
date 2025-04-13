@@ -1,8 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-
 import 'rentals_screen.dart';
+import 'list_property_screen.dart';
+import 'user_myprofile.dart'; // Import the UserMyProfile screen
+import 'user_request_maintenance.dart'; // Import the UserRequestMaintenance screen
 
 class UserDashboard extends StatefulWidget {
   const UserDashboard({Key? key}) : super(key: key);
@@ -21,12 +23,10 @@ class _UserDashboardState extends State<UserDashboard> {
     _fetchUserData();
   }
 
-  // Fetch user name and email from Firestore
   Future<void> _fetchUserData() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      final userDoc =
-      await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
 
       if (userDoc.exists) {
         setState(() {
@@ -37,7 +37,6 @@ class _UserDashboardState extends State<UserDashboard> {
     }
   }
 
-  // Snackbar for unimplemented features
   void _showFeatureNotAvailableMessage(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -69,23 +68,26 @@ class _UserDashboardState extends State<UserDashboard> {
         ],
       ),
       drawer: _buildDrawer(context),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildWelcomeSection(),
-            const SizedBox(height: 20),
-            _buildOverviewSection(),
-            const SizedBox(height: 20),
-            _buildQuickActionsSection(context),
-          ],
+      body: RefreshIndicator(
+        onRefresh: _fetchUserData,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildWelcomeSection(),
+              const SizedBox(height: 20),
+              _buildOverviewSection(),
+              const SizedBox(height: 20),
+              _buildQuickActionsSection(context),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  // Drawer
   Widget _buildDrawer(BuildContext context) {
     return Drawer(
       child: ListView(
@@ -105,7 +107,7 @@ class _UserDashboardState extends State<UserDashboard> {
           _buildDrawerItem(Icons.home, 'Available Rentals', context),
           _buildDrawerItem(Icons.add_business, 'List Your Property', context),
           _buildDrawerItem(Icons.store, 'Local Market Directory', context),
-          _buildDrawerItem(Icons.build, 'Request Maintenance', context),
+          _buildDrawerItem(Icons.build, 'Request Maintenance', context), // Added "Request Maintenance"
           _buildDrawerItem(Icons.person, 'My Profile', context),
           const Divider(),
           _buildDrawerItem(Icons.logout, 'Logout', context, isLogout: true),
@@ -114,8 +116,7 @@ class _UserDashboardState extends State<UserDashboard> {
     );
   }
 
-  Widget _buildDrawerItem(IconData icon, String title, BuildContext context,
-      {bool isLogout = false}) {
+  Widget _buildDrawerItem(IconData icon, String title, BuildContext context, {bool isLogout = false}) {
     return ListTile(
       leading: Icon(icon),
       title: Text(title),
@@ -128,6 +129,21 @@ class _UserDashboardState extends State<UserDashboard> {
             context,
             MaterialPageRoute(builder: (context) => const RentalsScreen()),
           );
+        } else if (title == 'List Your Property') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const ListPropertyScreen()),
+          );
+        } else if (title == 'Request Maintenance') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const UserRequestMaintenance()), // Navigate to Request Maintenance
+          );
+        } else if (title == 'My Profile') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const UserMyProfile()), // Navigate to My Profile
+          );
         } else {
           _showFeatureNotAvailableMessage(context);
         }
@@ -135,8 +151,6 @@ class _UserDashboardState extends State<UserDashboard> {
     );
   }
 
-
-  // Welcome Section
   Widget _buildWelcomeSection() {
     return Container(
       decoration: const BoxDecoration(
@@ -172,7 +186,6 @@ class _UserDashboardState extends State<UserDashboard> {
     );
   }
 
-  // Overview Section
   Widget _buildOverviewSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -239,7 +252,6 @@ class _UserDashboardState extends State<UserDashboard> {
     );
   }
 
-  // Quick Actions Section
   Widget _buildQuickActionsSection(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -258,7 +270,7 @@ class _UserDashboardState extends State<UserDashboard> {
             _buildQuickActionCard('Available Rentals', Icons.home, Colors.orange, context),
             _buildQuickActionCard('List Your Property', Icons.add_business, Colors.green, context),
             _buildQuickActionCard('Local Market Directory', Icons.store, Colors.purple, context),
-            _buildQuickActionCard('Request Maintenance', Icons.build, Colors.red, context),
+            _buildQuickActionCard('Request Maintenance', Icons.build, Colors.red, context), // Added "Request Maintenance"
             _buildQuickActionCard('My Profile', Icons.person, Colors.indigo, context),
           ],
         ),
@@ -266,14 +278,23 @@ class _UserDashboardState extends State<UserDashboard> {
     );
   }
 
-  Widget _buildQuickActionCard(
-      String title, IconData icon, Color color, BuildContext context) {
+  Widget _buildQuickActionCard(String title, IconData icon, Color color, BuildContext context) {
     return GestureDetector(
       onTap: () {
-        if (title == 'Available Rentals') {
+        if (title == 'Request Maintenance') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const UserRequestMaintenance()), // Navigate to Request Maintenance
+          );
+        } else if (title == 'Available Rentals') {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const RentalsScreen()),
+          );
+        } else if (title == 'List Your Property') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const ListPropertyScreen()),
           );
         } else {
           _showFeatureNotAvailableMessage(context);
@@ -304,5 +325,4 @@ class _UserDashboardState extends State<UserDashboard> {
       ),
     );
   }
-
 }

@@ -8,19 +8,14 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
-  bool _isLoading = false; // Visibility of system status
+  bool _isLoading = true;
 
-  void _navigateToLogin(BuildContext context) async {
-    setState(() {
-      _isLoading = true; // Show loading spinner
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(const Duration(seconds: 5), () {
+      Navigator.pushReplacementNamed(context, '/login');
     });
-
-    await Future.delayed(const Duration(seconds: 2)); // Simulate loading time
-    setState(() {
-      _isLoading = false;
-    });
-
-    Navigator.pushReplacementNamed(context, '/login');
   }
 
   @override
@@ -79,28 +74,9 @@ class _SplashScreenState extends State<SplashScreen> {
               ),
             ),
             const SizedBox(height: 40),
-            // Loading spinner to show visibility of system status
-            if (_isLoading)
-              const CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-              )
-            else
-              ElevatedButton(
-                onPressed: () => _navigateToLogin(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: Colors.blue.shade900,
-                  padding:
-                  const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                ),
-                child: const Text(
-                  'Login/Signup', // Match between system and real world
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ),
+            const CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+            ),
           ],
         ),
       ),
