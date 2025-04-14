@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'user_dashboard.dart'; // User Dashboard Screen
+import 'admin_dashboard.dart'; // Admin Dashboard Screen
+import 'forgot_password.dart'; // Forgot Password Screen
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -19,7 +22,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isPasswordValid = true;
   bool _isPasswordVisible = false;
   bool _isLoading = false;
-  String _role = 'user'; // Default role
+  String _role = 'user'; // Default role is user
 
   void _validateEmail(String value) {
     setState(() {
@@ -37,7 +40,6 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _validateFields() {
     _validateEmail(_emailController.text);
     _validatePassword(_passwordController.text);
-
     return _isEmailValid && _isPasswordValid;
   }
 
@@ -55,7 +57,6 @@ class _LoginScreenState extends State<LoginScreen> {
         password: _passwordController.text.trim(),
       );
 
-      // Fetch the user role from Firestore
       DocumentSnapshot userDoc =
       await _firestore.collection('users').doc(userCredential.user!.uid).get();
 
@@ -80,6 +81,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  // Show message function
   void _showMessage(String message, {bool success = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -94,168 +96,167 @@ class _LoginScreenState extends State<LoginScreen> {
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
 
-    final primaryColor = _role == 'admin' ? Colors.teal.shade800 : Colors.blue.shade900;
-    final secondaryColor = _role == 'admin' ? Colors.teal.shade400 : Colors.blue.shade400;
-
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [primaryColor, secondaryColor],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+      resizeToAvoidBottomInset: true, // Ensures the screen adjusts when the keyboard is visible
+      body: SingleChildScrollView(
+        child: Container(
+          width: double.infinity,
+          height: screenHeight,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: _role == 'admin'
+                  ? [Colors.teal.shade800, Colors.teal.shade400]
+                  : [Colors.blue.shade900, Colors.blue.shade400],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
           ),
-        ),
-        child: SingleChildScrollView(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minHeight: screenHeight),
-            child: IntrinsicHeight(
-              child: Column(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // App Icon
+              CircleAvatar(
+                radius: screenWidth * 0.15,
+                backgroundColor: Colors.white,
+                child: Icon(
+                  _role == 'admin' ? Icons.admin_panel_settings : Icons.person,
+                  size: screenWidth * 0.1,
+                  color: _role == 'admin' ? Colors.teal.shade800 : Colors.blue.shade900,
+                ),
+              ),
+              SizedBox(height: 20),
+
+              // Login Title
+              Text(
+                _role == 'admin' ? 'Admin Login' : 'User Login',
+                style: const TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              SizedBox(height: 30),
+
+              // Role Selection (For User or Admin)
+              Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // App Icon
-                  CircleAvatar(
-                    radius: screenWidth * 0.15,
-                    backgroundColor: Colors.white,
-                    child: Icon(
-                      _role == 'admin' ? Icons.admin_panel_settings : Icons.person,
-                      size: screenWidth * 0.1,
-                      color: primaryColor,
-                    ),
+                  ChoiceChip(
+                    label: const Text('User'),
+                    selected: _role == 'user',
+                    onSelected: (selected) {
+                      setState(() {
+                        _role = 'user';
+                      });
+                    },
                   ),
-                  const SizedBox(height: 20),
-
-                  // Login Title
-                  Text(
-                    _role == 'admin' ? 'Admin Login' : 'User Login',
-                    style: const TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 30),
-
-                  // Role Selection
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Tooltip(
-                        message: 'Login as a user to access regular features.',
-                        child: ChoiceChip(
-                          label: const Text('User'),
-                          selected: _role == 'user',
-                          onSelected: (selected) {
-                            setState(() {
-                              _role = 'user';
-                            });
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Tooltip(
-                        message: 'Login as an admin for privileged access.',
-                        child: ChoiceChip(
-                          label: const Text('Admin'),
-                          selected: _role == 'admin',
-                          onSelected: (selected) {
-                            setState(() {
-                              _role = 'admin';
-                            });
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 30),
-
-                  // Email Field
-                  _buildTextField(
-                    controller: _emailController,
-                    label: 'Email',
-                    prefixIcon: Icons.email,
-                    isValid: _isEmailValid,
-                    errorMessage: 'Enter a valid email.',
-                    onChanged: _validateEmail,
-                    screenWidth: screenWidth,
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Password Field
-                  _buildTextField(
-                    controller: _passwordController,
-                    label: 'Password',
-                    prefixIcon: Icons.lock,
-                    isValid: _isPasswordValid,
-                    errorMessage: 'Password must be at least 8 characters.',
-                    obscureText: !_isPasswordVisible,
-                    onChanged: _validatePassword,
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
-                        color: Colors.blue,
-                      ),
-                      onPressed: () {
-                        setState(() => _isPasswordVisible = !_isPasswordVisible);
-                      },
-                    ),
-                    screenWidth: screenWidth,
-                  ),
-                  const SizedBox(height: 30),
-
-                  // Login Button
-                  _isLoading
-                      ? Column(
-                    children: const [
-                      CircularProgressIndicator(),
-                      SizedBox(height: 10),
-                      Text(
-                        'Logging in, please wait...',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ],
-                  )
-                      : ElevatedButton(
-                    onPressed: _isEmailValid && _isPasswordValid
-                        ? () => _login(context)
-                        : null, // Disable when invalid
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: primaryColor,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 15, horizontal: 60),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                    ),
-                    child: const Text(
-                      'Login',
-                      style: TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Signup Navigation
-                  TextButton(
-                    onPressed: () => Navigator.pushNamed(context, '/signup'),
-                    child: const Text(
-                      'Don\'t have an account? Sign Up',
-                      style: TextStyle(
-                          color: Colors.white, fontWeight: FontWeight.bold),
-                    ),
+                  const SizedBox(width: 10),
+                  ChoiceChip(
+                    label: const Text('Admin'),
+                    selected: _role == 'admin',
+                    onSelected: (selected) {
+                      setState(() {
+                        _role = 'admin';
+                      });
+                    },
                   ),
                 ],
               ),
-            ),
+              SizedBox(height: 30),
+
+              // Email Field
+              _buildTextField(
+                controller: _emailController,
+                label: 'Email',
+                prefixIcon: Icons.email,
+                isValid: _isEmailValid,
+                errorMessage: 'Enter a valid email.',
+                onChanged: _validateEmail,
+                screenWidth: screenWidth,
+              ),
+              SizedBox(height: 20),
+
+              // Password Field
+              _buildTextField(
+                controller: _passwordController,
+                label: 'Password',
+                prefixIcon: Icons.lock,
+                isValid: _isPasswordValid,
+                errorMessage: 'Password must be at least 8 characters.',
+                obscureText: !_isPasswordVisible,
+                onChanged: _validatePassword,
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                    color: Colors.blue,
+                  ),
+                  onPressed: () {
+                    setState(() => _isPasswordVisible = !_isPasswordVisible);
+                  },
+                ),
+                screenWidth: screenWidth,
+              ),
+              SizedBox(height: 30),
+
+              // Login Button
+              _isLoading
+                  ? Column(
+                children: const [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 10),
+                  Text(
+                    'Logging in, please wait...',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ],
+              )
+                  : ElevatedButton(
+                onPressed: _isEmailValid && _isPasswordValid
+                    ? () => _login(context)
+                    : null, // Disable when invalid
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.blue,
+                  padding: EdgeInsets.symmetric(vertical: 15, horizontal: 60),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                ),
+                child: const Text(
+                  'Login',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ),
+              SizedBox(height: 20),
+
+              // Forgot Password Navigation
+              TextButton(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ForgotPasswordScreen()),
+                ),
+                child: const Text(
+                  'Forgot Password?',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+              ),
+
+              // Signup Navigation
+              TextButton(
+                onPressed: () => Navigator.pushNamed(context, '/signup'),
+                child: const Text(
+                  'Don\'t have an account? Sign Up',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
+  // Reusable Text Field widget
   Widget _buildTextField({
     required TextEditingController controller,
     required String label,

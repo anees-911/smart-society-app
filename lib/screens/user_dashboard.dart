@@ -1,10 +1,11 @@
+import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
 import 'rentals_screen.dart';
 import 'list_property_screen.dart';
 import 'user_myprofile.dart'; // Import the UserMyProfile screen
 import 'user_request_maintenance.dart'; // Import the UserRequestMaintenance screen
+import 'user_events_and_announcements.dart'; // Import the UserEventsAndAnnouncements screen
 
 class UserDashboard extends StatefulWidget {
   const UserDashboard({Key? key}) : super(key: key);
@@ -27,7 +28,6 @@ class _UserDashboardState extends State<UserDashboard> {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-
       if (userDoc.exists) {
         setState(() {
           userName = userDoc['name'] ?? 'User';
@@ -124,6 +124,11 @@ class _UserDashboardState extends State<UserDashboard> {
         if (isLogout) {
           FirebaseAuth.instance.signOut();
           Navigator.pushReplacementNamed(context, '/login');
+        } else if (title == 'Events & Announcements') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) =>  UserEventsAndAnnouncementsScreen()),
+          );
         } else if (title == 'Available Rentals') {
           Navigator.push(
             context,
@@ -137,12 +142,12 @@ class _UserDashboardState extends State<UserDashboard> {
         } else if (title == 'Request Maintenance') {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const UserRequestMaintenance()), // Navigate to Request Maintenance
+            MaterialPageRoute(builder: (context) => const RequestMaintenanceScreen()),
           );
         } else if (title == 'My Profile') {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const UserMyProfile()), // Navigate to My Profile
+            MaterialPageRoute(builder: (context) => const UserMyProfile()),
           );
         } else {
           _showFeatureNotAvailableMessage(context);
@@ -270,7 +275,7 @@ class _UserDashboardState extends State<UserDashboard> {
             _buildQuickActionCard('Available Rentals', Icons.home, Colors.orange, context),
             _buildQuickActionCard('List Your Property', Icons.add_business, Colors.green, context),
             _buildQuickActionCard('Local Market Directory', Icons.store, Colors.purple, context),
-            _buildQuickActionCard('Request Maintenance', Icons.build, Colors.red, context), // Added "Request Maintenance"
+            _buildQuickActionCard('Request Maintenance', Icons.build, Colors.red, context),
             _buildQuickActionCard('My Profile', Icons.person, Colors.indigo, context),
           ],
         ),
@@ -281,10 +286,10 @@ class _UserDashboardState extends State<UserDashboard> {
   Widget _buildQuickActionCard(String title, IconData icon, Color color, BuildContext context) {
     return GestureDetector(
       onTap: () {
-        if (title == 'Request Maintenance') {
+        if (title == 'Events & Announcements') {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const UserRequestMaintenance()), // Navigate to Request Maintenance
+            MaterialPageRoute(builder: (context) =>  UserEventsAndAnnouncementsScreen()),
           );
         } else if (title == 'Available Rentals') {
           Navigator.push(

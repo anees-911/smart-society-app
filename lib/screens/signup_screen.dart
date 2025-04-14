@@ -6,7 +6,7 @@ class SignUpScreen extends StatefulWidget {
   const SignUpScreen({Key? key}) : super(key: key);
 
   @override
-  State<SignUpScreen> createState() => _SignUpScreenState();
+  _SignUpScreenState createState() => _SignUpScreenState();
 }
 
 class _SignUpScreenState extends State<SignUpScreen> {
@@ -14,6 +14,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _addressController = TextEditingController();
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -22,11 +24,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
   bool _isEmailValid = true;
   bool _isPasswordValid = true;
   bool _isConfirmPasswordValid = true;
+  bool _isPhoneValid = true;
+  bool _isAddressValid = true;
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
   bool _isLoading = false;
-  String _role = 'user'; // Default role
 
+  // Validate functions for the fields
   void _validateName(String value) {
     setState(() {
       _isNameValid = value.trim().isNotEmpty && RegExp(r'^[a-zA-Z\s]+$').hasMatch(value.trim());
@@ -35,14 +39,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   void _validateEmail(String value) {
     setState(() {
-      _isEmailValid = value.trim().isNotEmpty &&
-          RegExp(r'^[^@]+@[^@]+\.[^@]+$').hasMatch(value.trim());
+      _isEmailValid = value.trim().isNotEmpty && RegExp(r'^[^@]+@[^@]+\.[^@]+$').hasMatch(value.trim());
     });
   }
 
   void _validatePassword(String value) {
     setState(() {
-      _isPasswordValid = value.trim().length >= 8 ;
+      _isPasswordValid = value.trim().length >= 8;
     });
   }
 
@@ -52,15 +55,32 @@ class _SignUpScreenState extends State<SignUpScreen> {
     });
   }
 
+  void _validatePhone(String value) {
+    // Pakistani phone number validation (must be 11 digits and only numbers)
+    setState(() {
+      _isPhoneValid = value.trim().length == 11 && RegExp(r'^[0-9]+$').hasMatch(value.trim());
+    });
+  }
+
+  void _validateAddress(String value) {
+    // Relaxed validation for the address: It should be non-empty and at least 5 characters long
+    setState(() {
+      _isAddressValid = value.trim().isNotEmpty && value.trim().length >= 5;
+    });
+  }
+
   bool _validateFields() {
     _validateName(_nameController.text);
     _validateEmail(_emailController.text);
     _validatePassword(_passwordController.text);
     _validateConfirmPassword(_confirmPasswordController.text);
+    _validatePhone(_phoneController.text);
+    _validateAddress(_addressController.text);
 
-    return _isNameValid && _isEmailValid && _isPasswordValid && _isConfirmPasswordValid;
+    return _isNameValid && _isEmailValid && _isPasswordValid && _isConfirmPasswordValid && _isPhoneValid && _isAddressValid;
   }
 
+  // SignUp process
   Future<void> _signUp(BuildContext context) async {
     if (!_validateFields()) {
       _showMessage('Please fix the errors in the fields.');
@@ -83,7 +103,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
         await _firestore.collection('users').doc(user.uid).set({
           'name': _nameController.text.trim(),
           'email': _emailController.text.trim(),
-          'role': _role,
+          'phone': _phoneController.text.trim(),
+          'address': _addressController.text.trim(),
+          'role': 'user', // Default role is user
           'uid': user.uid,
           'createdAt': FieldValue.serverTimestamp(),
         });
@@ -106,6 +128,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
   }
 
+  // Show messages to the user
   void _showMessage(String message, {bool success = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -116,8 +139,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   @override
-  Widget build(BuildContext context)
-  {
+  Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
 
@@ -127,9 +149,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         height: double.infinity,
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: _role == 'admin'
-                ? [Colors.teal.shade800, Colors.teal.shade400]
-                : [Colors.blue.shade900, Colors.blue.shade400],
+            colors: [Colors.blue.shade900, Colors.blue.shade400],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -141,28 +161,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Align(
-                    alignment: Alignment.topLeft,
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 20, left: 20),
-                      child: IconButton(
-                        icon: const Icon(Icons.arrow_back, color: Colors.white),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ),
-                  ),
                   CircleAvatar(
                     radius: screenWidth * 0.15,
                     backgroundColor: Colors.white,
                     child: Icon(
                       Icons.person_add,
                       size: screenWidth * 0.1,
-                      color: _role == 'admin' ? Colors.teal.shade800 : Colors.blue.shade900,
+                      color: Colors.blue.shade900,
                     ),
                   ),
                   const SizedBox(height: 20),
                   Text(
-                    _role == 'admin' ? 'Admin Signup' : 'User Signup',
+                    'User Signup',
                     style: TextStyle(
                       fontSize: screenWidth * 0.07,
                       fontWeight: FontWeight.bold,
@@ -170,31 +180,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      ChoiceChip(
-                        label: const Text('User'),
-                        selected: _role == 'user',
-                        onSelected: (selected) {
-                          setState(() {
-                            _role = 'user';
-                          });
-                        },
-                      ),
-                      const SizedBox(width: 10),
-                      ChoiceChip(
-                        label: const Text('Admin'),
-                        selected: _role == 'admin',
-                        onSelected: (selected) {
-                          setState(() {
-                            _role = 'admin';
-                          });
-                        },
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
+
                   _buildTextField(
                     controller: _nameController,
                     label: 'Name',
@@ -205,6 +191,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     screenWidth: screenWidth,
                   ),
                   const SizedBox(height: 20),
+
                   _buildTextField(
                     controller: _emailController,
                     label: 'Email',
@@ -215,6 +202,29 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     screenWidth: screenWidth,
                   ),
                   const SizedBox(height: 20),
+
+                  _buildTextField(
+                    controller: _phoneController,
+                    label: 'Phone Number',
+                    prefixIcon: Icons.phone,
+                    isValid: _isPhoneValid,
+                    errorMessage: 'Enter a valid phone number (11 digits).',
+                    onChanged: _validatePhone,
+                    screenWidth: screenWidth,
+                  ),
+                  const SizedBox(height: 20),
+
+                  _buildTextField(
+                    controller: _addressController,
+                    label: 'Address',
+                    prefixIcon: Icons.location_on,
+                    isValid: _isAddressValid,
+                    errorMessage: 'Address must be at least 5 characters long.',
+                    onChanged: _validateAddress,
+                    screenWidth: screenWidth,
+                  ),
+                  const SizedBox(height: 20),
+
                   _buildTextField(
                     controller: _passwordController,
                     label: 'Password',
@@ -235,6 +245,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     screenWidth: screenWidth,
                   ),
                   const SizedBox(height: 20),
+
                   _buildTextField(
                     controller: _confirmPasswordController,
                     label: 'Confirm Password',
@@ -255,6 +266,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     screenWidth: screenWidth,
                   ),
                   const SizedBox(height: 30),
+
                   _isLoading
                       ? const CircularProgressIndicator()
                       : ElevatedButton(
@@ -273,6 +285,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
+
                   TextButton(
                     onPressed: () => Navigator.pop(context),
                     child: const Text(

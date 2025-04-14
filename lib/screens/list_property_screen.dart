@@ -65,6 +65,7 @@ class _ListPropertyScreenState extends State<ListPropertyScreen> {
         'description': _descriptionController.text.trim(),
         'images': imageUrls,
         'timestamp': FieldValue.serverTimestamp(),
+        'verify':'',
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
