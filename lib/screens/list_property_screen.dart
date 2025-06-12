@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:com.myfyp.sm/screens/rentals_screen.dart';
 
 class ListPropertyScreen extends StatefulWidget {
   const ListPropertyScreen({Key? key}) : super(key: key);
@@ -23,7 +24,6 @@ class _ListPropertyScreenState extends State<ListPropertyScreen> {
 
   final ImagePicker _picker = ImagePicker();
 
-  // Pick an image from camera or gallery
   Future<void> _pickImage(ImageSource source) async {
     final picked = await _picker.pickImage(source: source, imageQuality: 70);
     if (picked != null) {
@@ -33,7 +33,6 @@ class _ListPropertyScreenState extends State<ListPropertyScreen> {
     }
   }
 
-  // Upload images to Firebase Storage and return their download URLs
   Future<List<String>> _uploadImages() async {
     List<String> downloadUrls = [];
     for (File image in _selectedImages) {
@@ -46,7 +45,6 @@ class _ListPropertyScreenState extends State<ListPropertyScreen> {
     return downloadUrls;
   }
 
-  // Submit the property data to Firestore
   Future<void> _submitProperty() async {
     if (!_formKey.currentState!.validate() || _selectedImages.isEmpty) return;
 
@@ -64,15 +62,18 @@ class _ListPropertyScreenState extends State<ListPropertyScreen> {
         'rooms': _roomsController.text.trim(),
         'description': _descriptionController.text.trim(),
         'images': imageUrls,
+        'isApproved': false, // Initially set to false
         'timestamp': FieldValue.serverTimestamp(),
-        'verify':'',
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Property listed successfully')),
       );
 
-      Navigator.pop(context);
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const RentalsScreen()),
+      );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to list property: $e')),
@@ -84,7 +85,6 @@ class _ListPropertyScreenState extends State<ListPropertyScreen> {
     });
   }
 
-  // Image picker widget
   Widget _buildImagePicker() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -115,38 +115,35 @@ class _ListPropertyScreenState extends State<ListPropertyScreen> {
           children: [
             ElevatedButton.icon(
               onPressed: () => _pickImage(ImageSource.camera),
-              icon: const Icon(Icons.camera_alt, color: Colors.white), // White icon color
-              label: const Text('Camera', style: TextStyle(color: Colors.white)), // White text color
+              icon: const Icon(Icons.camera_alt, color: Colors.white),
+              label: const Text('Camera', style: TextStyle(color: Colors.white)),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green.shade700, // Green background
+                backgroundColor: Colors.green,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(30),
                 ),
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               ),
             ),
-
             const SizedBox(width: 10),
             ElevatedButton.icon(
               onPressed: () => _pickImage(ImageSource.gallery),
-              icon: const Icon(Icons.photo_library, color: Colors.white), // White icon color
-              label: const Text('Gallery', style: TextStyle(color: Colors.white)), // White text color
+              icon: const Icon(Icons.photo_library, color: Colors.white),
+              label: const Text('Gallery', style: TextStyle(color: Colors.white)),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green.shade700, // Green background
+                backgroundColor: Colors.green,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(30),
                 ),
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               ),
             ),
-
           ],
         ),
       ],
     );
   }
 
-  // A reusable text field widget with validation
   Widget _buildTextField({
     required TextEditingController controller,
     required String label,
@@ -163,7 +160,7 @@ class _ListPropertyScreenState extends State<ListPropertyScreen> {
         decoration: InputDecoration(
           labelText: label,
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(15), // Rounded corners for input fields
+            borderRadius: BorderRadius.circular(15),
           ),
           filled: true,
           fillColor: Colors.white,
@@ -177,7 +174,8 @@ class _ListPropertyScreenState extends State<ListPropertyScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('List Your Property'),
-        backgroundColor: Colors.green.shade700, // Green to match the dashboard theme
+        backgroundColor: Colors.green,
+        centerTitle: true,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -198,8 +196,8 @@ class _ListPropertyScreenState extends State<ListPropertyScreen> {
                   : ElevatedButton(
                 onPressed: _submitProperty,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green.shade700, // Green background for visibility
-                  foregroundColor: Colors.white, // White text color for contrast
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                 ),

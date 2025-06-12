@@ -9,34 +9,25 @@ class RentalsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Available Rentals'),
-        backgroundColor: Colors.blueAccent,
+        backgroundColor: Colors.green,
         centerTitle: true,
       ),
       body: FutureBuilder<QuerySnapshot>(
-        future: FirebaseFirestore.instance.collection('properties').get(),
+        future: FirebaseFirestore.instance
+            .collection('properties')
+            .where('isApproved', isEqualTo: true) // Only show approved properties
+            .get(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
+            return const Center(child: CircularProgressIndicator());
           }
 
           if (snapshot.hasError) {
-            return const Center(
-              child: Text(
-                'Error fetching data. Please try again later.',
-                style: TextStyle(color: Colors.red, fontSize: 16),
-              ),
-            );
+            return const Center(child: Text('Error fetching data.'));
           }
 
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(
-              child: Text(
-                'No properties available at the moment.',
-                style: TextStyle(fontSize: 16, color: Colors.grey),
-              ),
-            );
+            return const Center(child: Text('No properties available.'));
           }
 
           final properties = snapshot.data!.docs.map((doc) {
@@ -60,13 +51,10 @@ class RentalsScreen extends StatelessWidget {
     return Card(
       elevation: 4,
       margin: const EdgeInsets.only(bottom: 16.0),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Property Image
           ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
             child: AspectRatio(
@@ -81,9 +69,7 @@ class RentalsScreen extends StatelessWidget {
                 },
                 loadingBuilder: (context, child, progress) {
                   if (progress == null) return child;
-                  return const Center(
-                    child: CircularProgressIndicator(),
-                  );
+                  return const Center(child: CircularProgressIndicator());
                 },
               ),
             ),
@@ -93,27 +79,15 @@ class RentalsScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Property Name
                 Text(
                   property['name'],
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 8),
-                // Property Price
-                Text(
-                  'Price: ${property['price']}',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey,
-                  ),
-                ),
+                Text('Price: ${property['price']}'),
                 const SizedBox(height: 8),
-                // View Details Button
                 Align(
                   alignment: Alignment.centerRight,
                   child: ElevatedButton(
@@ -121,21 +95,18 @@ class RentalsScreen extends StatelessWidget {
                       Navigator.pushNamed(
                         context,
                         '/propertyDetails',
-                        arguments: property, // Pass the property map as an argument
+                        arguments: property,
                       );
-
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blueAccent,
+                      foregroundColor: Colors.white,
+                      backgroundColor: Colors.green,
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    child: const Text(
-                      'View Details',
-                      style: TextStyle(fontSize: 14),
-                    ),
+                    child: const Text('View Details'),
                   ),
                 ),
               ],
@@ -146,3 +117,4 @@ class RentalsScreen extends StatelessWidget {
     );
   }
 }
+  

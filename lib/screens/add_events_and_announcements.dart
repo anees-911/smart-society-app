@@ -92,7 +92,7 @@ class _AddEventAndAnnouncementScreenState
     return Scaffold(
       appBar: AppBar(
         title: const Text("Add Event/Announcement"),
-        backgroundColor: Colors.green.shade700, // Match the dashboard color
+        backgroundColor: Colors.green, // Match the dashboard color
         centerTitle: true,
       ),
       body: Padding(
@@ -166,7 +166,7 @@ class _AddEventAndAnnouncementScreenState
                   : ElevatedButton(
                 onPressed: _addEvent,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green.shade700,
+                  backgroundColor: Colors.green,
                   padding: const EdgeInsets.symmetric(
                       vertical: 15, horizontal: 40),
                 ),

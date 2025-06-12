@@ -5,14 +5,14 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart';
 
-class UserMyProfile extends StatefulWidget {
-  const UserMyProfile({Key? key}) : super(key: key);
+class AdminMyProfile extends StatefulWidget {
+  const AdminMyProfile({Key? key}) : super(key: key);
 
   @override
-  _UserMyProfileState createState() => _UserMyProfileState();
+  _AdminMyProfileState createState() => _AdminMyProfileState();
 }
 
-class _UserMyProfileState extends State<UserMyProfile> {
+class _AdminMyProfileState extends State<AdminMyProfile> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
@@ -27,30 +27,30 @@ class _UserMyProfileState extends State<UserMyProfile> {
   @override
   void initState() {
     super.initState();
-    _fetchUserData();
+    _fetchAdminData();
   }
 
-  // Fetch user data from Firestore and populate the controllers
-  Future<void> _fetchUserData() async {
+  // Fetch admin data from Firestore and populate the controllers
+  Future<void> _fetchAdminData() async {
     final user = _auth.currentUser;
     if (user != null) {
       try {
-        DocumentSnapshot userDoc = await _firestore.collection('users').doc(user.uid).get();
-        if (userDoc.exists) {
+        DocumentSnapshot adminDoc = await _firestore.collection('users').doc(user.uid).get();
+        if (adminDoc.exists) {
           setState(() {
-            _nameController.text = userDoc['name'] ?? '';
-            _phoneController.text = userDoc['phone'] ?? '';
-            _addressController.text = userDoc['address'] ?? '';
-            _profileImageUrl = userDoc['profile_picture'] ?? '';  // Load profile picture URL
+            _nameController.text = adminDoc['name'] ?? '';
+            _phoneController.text = adminDoc['phone'] ?? '';
+            _addressController.text = adminDoc['address'] ?? '';
+            _profileImageUrl = adminDoc['profile_picture'] ?? '';  // Load profile picture URL
           });
         }
       } catch (e) {
-        print("Error fetching user data: $e");
+        print("Error fetching admin data: $e");
       }
     }
   }
 
-  // Update the user's profile data
+  // Update the admin's profile data
   Future<void> _updateProfile() async {
     setState(() {
       _isLoading = true;
@@ -69,7 +69,7 @@ class _UserMyProfileState extends State<UserMyProfile> {
           imageUrl = _profileImageUrl ?? '';  // Keep the old image if no new one is selected
         }
 
-        // Update user profile data in Firestore
+        // Update admin profile data in Firestore
         await _firestore.collection('users').doc(user.uid).update({
           'name': _nameController.text.trim(),
           'phone': _phoneController.text.trim(),
@@ -97,50 +97,21 @@ class _UserMyProfileState extends State<UserMyProfile> {
   // Pick image from gallery or camera
   Future<void> _pickImage() async {
     final picker = ImagePicker();
-    // Show dialog to choose either camera or gallery
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text("Choose an option"),
-          actions: [
-            TextButton(
-              onPressed: () async {
-                final pickedFile = await picker.pickImage(source: ImageSource.camera);
-                if (pickedFile != null) {
-                  setState(() {
-                    _imageFile = File(pickedFile.path);
-                  });
-                }
-                Navigator.pop(context);
-              },
-              child: Text("Camera"),
-            ),
-            TextButton(
-              onPressed: () async {
-                final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-                if (pickedFile != null) {
-                  setState(() {
-                    _imageFile = File(pickedFile.path);
-                  });
-                }
-                Navigator.pop(context);
-              },
-              child: Text("Gallery"),
-            ),
-          ],
-        );
-      },
-    );
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+
+    if (pickedFile != null) {
+      setState(() {
+        _imageFile = File(pickedFile.path);
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Profile'),
-        backgroundColor: Colors.green,
-        centerTitle: true,// Match with dashboard color
+        title: const Text('Admin Profile'),
+        backgroundColor: Colors.blueAccent,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -174,7 +145,7 @@ class _UserMyProfileState extends State<UserMyProfile> {
                       child: IconButton(
                         icon: const Icon(Icons.camera_alt),
                         onPressed: _pickImage,
-                        color: Colors.green.shade700,
+                        color: Colors.blueAccent,
                       ),
                     ),
                   ],
@@ -216,7 +187,7 @@ class _UserMyProfileState extends State<UserMyProfile> {
                   : ElevatedButton(
                 onPressed: _updateProfile,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green, // Corrected color
+                  backgroundColor: Colors.blueAccent, // Corrected color
                   foregroundColor: Colors.white, // Text color
                   padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 60),
                 ),

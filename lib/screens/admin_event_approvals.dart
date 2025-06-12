@@ -45,7 +45,7 @@ class _AdminEventApprovalsScreenState extends State<AdminEventApprovalsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Event Approvals"),
-        backgroundColor: Colors.green.shade700,
+        backgroundColor: Colors.blueAccent,
         centerTitle: true,
       ),
       body: FutureBuilder<List<DocumentSnapshot>>(
@@ -118,7 +118,8 @@ class _AdminEventApprovalsScreenState extends State<AdminEventApprovalsScreen> {
             MaterialPageRoute(builder: (context) => AdminAddEventScreen()), // Navigate to Add Event
           );
         },
-        backgroundColor: Colors.green.shade700,
+        backgroundColor: Colors.blueAccent,
+
         child: const Icon(Icons.add),
       ),
     );

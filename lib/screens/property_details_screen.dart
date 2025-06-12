@@ -12,15 +12,10 @@ class PropertyDetailsScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Colors.green,
         title: Text(property['name']),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () {
-              // Implement search functionality
-            },
-          ),
-        ],
+        centerTitle: true,
+
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -77,9 +72,9 @@ class PropertyDetailsScreen extends StatelessWidget {
                       // Price
                       Row(
                         children: [
-                          const Icon(Icons.money, color: Colors.green),
+                          const Icon(Icons.money_rounded, color: Colors.green),
                           Text(
-                            '${property['price']} / month',
+                            'Rs ${property['price']} / month',
                             style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w500,
@@ -130,7 +125,8 @@ class PropertyDetailsScreen extends StatelessWidget {
                     },
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
-                      backgroundColor: Colors.blueAccent, // Changed 'primary' to 'backgroundColor'
+                      backgroundColor: Colors.green, // Changed 'primary' to 'backgroundColor'
+                      foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(30),
                       ),
@@ -140,6 +136,7 @@ class PropertyDetailsScreen extends StatelessWidget {
                     child: const Text(
                       'Rent Now',
                       style: TextStyle(fontSize: 18),
+
                     ),
                   )
 
@@ -182,12 +179,18 @@ class PropertyDetailsScreen extends StatelessWidget {
       builder: (context) => AlertDialog(
         title: const Text('Rent Property'),
         content: Text(
-          'Are you sure you want to rent "${property['name']}" for \$${property['price']} per month?',
+          'Are you sure you want to rent "${property['name']}" for Rs ${property['price']} per month?',
         ),
         actions: [
           TextButton(
+            style: ButtonStyle(
+              backgroundColor: MaterialStateProperty.all<Color>(Colors.green), // Green background
+            ),
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: Colors.white), // White text color
+            ),
           ),
           ElevatedButton(
             onPressed: () {
@@ -199,11 +202,17 @@ class PropertyDetailsScreen extends StatelessWidget {
                 ),
               );
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-            child: const Text('Confirm'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green, // Green button
+            ),
+            child: const Text(
+              'Confirm',
+              style: TextStyle(color: Colors.white), // White text color
+            ),
           ),
         ],
       ),
+
     );
   }
 }

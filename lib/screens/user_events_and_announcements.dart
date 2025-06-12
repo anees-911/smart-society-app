@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'add_events_and_announcements.dart';  // Import Add Event Screen
+import 'add_events_and_announcements.dart';
+import 'user_event_details.dart';
 
 class UserEventsAndAnnouncementsScreen extends StatefulWidget {
   @override
@@ -26,7 +27,7 @@ class _UserEventsAndAnnouncementsScreenState
     return Scaffold(
       appBar: AppBar(
         title: const Text("Events & Announcements"),
-        backgroundColor: Colors.green.shade700, // Match the dashboard color
+        backgroundColor: Colors.green, // Match the dashboard color
         centerTitle: true,
       ),
       body: Padding(
@@ -60,14 +61,25 @@ class _UserEventsAndAnnouncementsScreenState
                         ),
                         child: ListTile(
                           title: Text(
-                            event['title'],
+                            event['title'] ?? 'No Title Available', // Default if null
                             style: TextStyle(
                                 fontWeight: FontWeight.bold, fontSize: 18),
                           ),
                           subtitle: Text(
-                            event['description'],
+                            event['description'] ?? 'No Description Available', // Default if null
                             style: const TextStyle(fontSize: 16),
                           ),
+                          onTap: () {
+                            // Navigate to EventDetailsScreen when an event is tapped
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => EventDetailsScreen(
+                                  event: event.data() as Map<String, dynamic> ?? {},
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       );
                     },
@@ -88,7 +100,8 @@ class _UserEventsAndAnnouncementsScreenState
                 builder: (context) => AddEventAndAnnouncementScreen()), // Navigate to Add Event
           );
         },
-        backgroundColor: Colors.green.shade700,
+        foregroundColor: Colors.white,
+        backgroundColor: Colors.green,
         child: const Icon(Icons.add), // Simple + icon
       ),
     );

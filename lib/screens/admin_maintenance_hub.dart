@@ -12,26 +12,25 @@ class AdminMaintenanceHub extends StatefulWidget {
 class _AdminMaintenanceHubState extends State<AdminMaintenanceHub> {
   // Fetching the maintenance requests from Firestore
   Future<List<Map<String, dynamic>>> _fetchRequests() async {
-    QuerySnapshot snapshot = await FirebaseFirestore.instance.collection('maintenance_requests').get();
-    List<Map<String, dynamic>> requests = [];
-    for (var doc in snapshot.docs) {
-      requests.add(doc.data() as Map<String, dynamic>);
+    try {
+      QuerySnapshot snapshot = await FirebaseFirestore.instance.collection('maintenance_requests').get();
+      List<Map<String, dynamic>> requests = [];
+      print("Fetched requests: ${snapshot.docs.length}"); // Debug: Print the number of requests fetched
+
+      for (var doc in snapshot.docs) {
+        requests.add(doc.data() as Map<String, dynamic>);
+      }
+      return requests;
+    } catch (e) {
+      print("Error fetching requests: $e"); // Debug: Print error if something goes wrong
+      return []; // Return empty list if error occurs
     }
-    return requests;
   }
 
   // Updating the status of the maintenance request
   Future<void> _updateStatus(String requestId, String status) async {
     await FirebaseFirestore.instance.collection('maintenance_requests').doc(requestId).update({
       'status': status,
-    });
-  }
-
-  // Assigning a professional to the maintenance request
-  Future<void> _assignProfessional(String requestId, String professionalId) async {
-    await FirebaseFirestore.instance.collection('maintenance_requests').doc(requestId).update({
-      'assigned_professional': professionalId,
-      'status': 'accepted', // Update status to accepted when a professional is assigned
     });
   }
 
@@ -52,7 +51,7 @@ class _AdminMaintenanceHubState extends State<AdminMaintenanceHub> {
         title: const Text('Admin Maintenance Hub'),
         backgroundColor: Colors.blueAccent,
       ),
-      body: SingleChildScrollView(
+      body: SingleChildScrollView( // Ensures the entire content is scrollable
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: FutureBuilder<List<Map<String, dynamic>>>(
@@ -60,6 +59,10 @@ class _AdminMaintenanceHubState extends State<AdminMaintenanceHub> {
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
+              }
+
+              if (snapshot.hasError) {
+                return Center(child: Text('Error: ${snapshot.error}'));
               }
 
               if (!snapshot.hasData || snapshot.data!.isEmpty) {
@@ -86,36 +89,39 @@ class _AdminMaintenanceHubState extends State<AdminMaintenanceHub> {
                         children: [
                           Text('Status: $status'),
                           const SizedBox(height: 8),
-                          // Status update buttons
+                          // Row with Flexible to prevent overflow in Row
                           Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               if (status == 'pending')
-                                IconButton(
-                                  icon: const Icon(Icons.check_circle, color: Colors.green),
-                                  onPressed: () {
-                                    _updateStatus(requestId, 'accepted');  // Accept the request
-                                    // Optionally, you can assign a professional here
-                                    // _assignProfessional(requestId, 'professional_id_1');
-                                    _showMessage('Request Accepted');
-                                  },
+                                Flexible(
+                                  child: IconButton(
+                                    icon: const Icon(Icons.check_circle, color: Colors.green),
+                                    onPressed: () {
+                                      _updateStatus(requestId, 'accepted');  // Accept the request
+                                      _showMessage('Request Accepted');
+                                    },
+                                  ),
                                 ),
                               if (status == 'pending')
-                                IconButton(
-                                  icon: const Icon(Icons.cancel, color: Colors.red),
-                                  onPressed: () {
-                                    _updateStatus(requestId, 'rejected');  // Reject the request
-                                    _showMessage('Request Rejected');
-                                  },
+                                Flexible(
+                                  child: IconButton(
+                                    icon: const Icon(Icons.cancel, color: Colors.red),
+                                    onPressed: () {
+                                      _updateStatus(requestId, 'rejected');  // Reject the request
+                                      _showMessage('Request Rejected');
+                                    },
+                                  ),
                                 ),
-                              if (status != 'pending' && assignedProfessional == null)
-                                IconButton(
-                                  icon: const Icon(Icons.assignment_ind, color: Colors.blue),
-                                  onPressed: () {
-                                    // Assign a professional for now (you can replace this logic with actual professional assignment)
-                                    _assignProfessional(requestId, 'professional_id_1');
-                                    _showMessage('Professional Assigned');
-                                  },
+                              if (status != 'pending')
+                                Flexible(
+                                  child: IconButton(
+                                    icon: const Icon(Icons.pending, color: Colors.orange),
+                                    onPressed: () {
+                                      _updateStatus(requestId, 'pending');  // Set as pending again
+                                      _showMessage('Request Set to Pending');
+                                    },
+                                  ),
                                 ),
                             ],
                           ),

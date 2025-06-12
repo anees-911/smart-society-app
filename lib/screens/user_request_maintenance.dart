@@ -87,7 +87,8 @@ class _RequestMaintenanceScreenState extends State<RequestMaintenanceScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Request Maintenance'),
-        backgroundColor: Colors.green.shade700,
+        backgroundColor: Colors.green,
+        centerTitle: true,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -139,20 +140,20 @@ class _RequestMaintenanceScreenState extends State<RequestMaintenanceScreen> {
                 children: [
                   ElevatedButton.icon(
                     onPressed: () => _pickImage(ImageSource.camera),
-                    icon: const Icon(Icons.camera_alt),
+                    icon: const Icon(Icons.camera_alt, color: Colors.white,),
                     label: const Text('Camera'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green.shade700, // background color
+                      backgroundColor: Colors.green, // background color
                       foregroundColor: Colors.white, // text color
                     ),
                   ),
                   const SizedBox(width: 10),
                   ElevatedButton.icon(
                     onPressed: () => _pickImage(ImageSource.gallery),
-                    icon: const Icon(Icons.photo_library),
+                    icon: const Icon(Icons.photo_library, color: Colors.white,),
                     label: const Text('Gallery'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green.shade700, // background color
+                      backgroundColor: Colors.green, // background color
                       foregroundColor: Colors.white, // text color
                     ),
                   ),
@@ -191,10 +192,11 @@ class _RequestMaintenanceScreenState extends State<RequestMaintenanceScreen> {
                   : ElevatedButton(
                 onPressed: _submitRequest,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green.shade700, // background color
+                  backgroundColor: Colors.green, // background color
                   padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
                 ),
-                child: const Text('Submit Request', style: TextStyle(fontSize: 18)),
+                child: const Text('Submit Request', style: TextStyle(color: Colors.white,
+                    fontSize: 18)),
               ),
             ],
           ),

@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'user_dashboard.dart'; // User Dashboard Screen
-import 'admin_dashboard.dart'; // Admin Dashboard Screen
-import 'forgot_password.dart'; // Forgot Password Screen
+import 'forgot_password.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -22,7 +20,21 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isPasswordValid = true;
   bool _isPasswordVisible = false;
   bool _isLoading = false;
-  String _role = 'user'; // Default role is user
+  String _role = 'user';
+
+  @override
+  void initState() {
+    super.initState();
+    _emailController.addListener(() => _validateEmail(_emailController.text));
+    _passwordController.addListener(() => _validatePassword(_passwordController.text));
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
 
   void _validateEmail(String value) {
     setState(() {
@@ -57,10 +69,12 @@ class _LoginScreenState extends State<LoginScreen> {
         password: _passwordController.text.trim(),
       );
 
-      DocumentSnapshot userDoc =
-      await _firestore.collection('users').doc(userCredential.user!.uid).get();
+      DocumentSnapshot userDoc = await _firestore
+          .collection('users')
+          .doc(userCredential.user!.uid)
+          .get();
 
-      if (!userDoc.exists) {
+      if (!userDoc.exists || !userDoc.data()!.toString().contains('role')) {
         throw Exception("User role not found in Firestore.");
       }
 
@@ -72,16 +86,17 @@ class _LoginScreenState extends State<LoginScreen> {
         throw Exception("You are not authorized to log in as a user.");
       }
 
-      final targetRoute = _role == 'admin' ? '/adminDashboard' : '/userDashboard';
-      Navigator.pushReplacementNamed(context, targetRoute);
+      Navigator.pushReplacementNamed(
+        context,
+        _role == 'admin' ? '/adminDashboard' : '/userDashboard',
+      );
     } catch (e) {
-      _showMessage('Error: ${e.toString()}');
+      _showMessage('Login Failed: ${e.toString().replaceAll("Exception: ", "")}');
     } finally {
       setState(() => _isLoading = false);
     }
   }
 
-  // Show message function
   void _showMessage(String message, {bool success = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -93,15 +108,16 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
+    final paddingHorizontal = screenWidth * 0.1;
 
-    return Scaffold(
-      resizeToAvoidBottomInset: true, // Ensures the screen adjusts when the keyboard is visible
-      body: SingleChildScrollView(
-        child: Container(
+    return WillPopScope(
+      onWillPop: () async => false,
+      child: Scaffold(
+        resizeToAvoidBottomInset: true,
+        body: Container(
           width: double.infinity,
-          height: screenHeight,
+          height: double.infinity,
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: _role == 'admin'
@@ -111,152 +127,167 @@ class _LoginScreenState extends State<LoginScreen> {
               end: Alignment.bottomRight,
             ),
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // App Icon
-              CircleAvatar(
-                radius: screenWidth * 0.15,
-                backgroundColor: Colors.white,
-                child: Icon(
-                  _role == 'admin' ? Icons.admin_panel_settings : Icons.person,
-                  size: screenWidth * 0.1,
-                  color: _role == 'admin' ? Colors.teal.shade800 : Colors.blue.shade900,
-                ),
-              ),
-              SizedBox(height: 20),
+          child: SafeArea(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(vertical: 40),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                    child: IntrinsicHeight(
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 600),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              CircleAvatar(
+                                radius: screenWidth * 0.15,
+                                backgroundColor: Colors.white,
+                                child: Icon(
+                                  _role == 'admin'
+                                      ? Icons.admin_panel_settings
+                                      : Icons.person,
+                                  size: screenWidth * 0.1,
+                                  color: _role == 'admin'
+                                      ? Colors.teal.shade800
+                                      : Colors.blue.shade900,
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+                              Text(
+                                _role == 'admin' ? 'Admin Login' : 'User Login',
+                                style: const TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(height: 30),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  ChoiceChip(
+                                    label: const Text('User'),
+                                    selected: _role == 'user',
+                                    onSelected: (selected) {
+                                      setState(() => _role = 'user');
+                                    },
+                                  ),
+                                  const SizedBox(width: 10),
+                                  ChoiceChip(
+                                    label: const Text('Admin'),
+                                    selected: _role == 'admin',
+                                    onSelected: (selected) {
+                                      setState(() => _role = 'admin');
+                                    },
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 30),
+                              _buildTextField(
+                                controller: _emailController,
+                                label: 'Email',
+                                prefixIcon: Icons.email,
+                                isValid: _isEmailValid,
+                                errorMessage: 'Enter a valid email.',
+                                screenWidth: screenWidth,
+                              ),
+                              const SizedBox(height: 20),
+                              _buildTextField(
+                                controller: _passwordController,
+                                label: 'Password',
+                                prefixIcon: Icons.lock,
+                                isValid: _isPasswordValid,
+                                errorMessage: 'Password must be at least 8 characters.',
+                                obscureText: !_isPasswordVisible,
+                                screenWidth: screenWidth,
+                                suffixIcon: IconButton(
+                                  icon: Icon(
+                                    _isPasswordVisible
+                                        ? Icons.visibility
+                                        : Icons.visibility_off,
+                                    color: Colors.blue,
+                                  ),
+                                  onPressed: () {
+                                    setState(() => _isPasswordVisible = !_isPasswordVisible);
+                                  },
+                                ),
+                              ),
+                              const SizedBox(height: 30),
+                              _isLoading
+                                  ? const Column(
+                                children: [
+                                  CircularProgressIndicator(color: Colors.white),
+                                  SizedBox(height: 10),
+                                  Text(
+                                    'Logging in, please wait...',
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                ],
+                              )
+                                  : ElevatedButton(
+                                onPressed: _isEmailValid && _isPasswordValid
+                                    ? () => _login(context)
+                                    : null,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.white,
+                                  foregroundColor: Colors.blue,
+                                  padding: const EdgeInsets.symmetric(
+                                      vertical: 15, horizontal: 60),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(30),
+                                  ),
+                                ),
+                                child: const Text(
+                                  'Login',
+                                  style: TextStyle(
+                                      fontSize: 18, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+                              TextButton(
+                                onPressed: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const ForgotPasswordScreen(),
+                                  ),
+                                ),
+                                child: const Text(
+                                  'Forgot Password?',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              if (_role == 'user')
+                                TextButton(
+                                  onPressed: () => Navigator.pushNamed(context, '/signup'),
+                                  child: const Text(
+                                    'Don\'t have an account? Sign Up',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
 
-              // Login Title
-              Text(
-                _role == 'admin' ? 'Admin Login' : 'User Login',
-                style: const TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-              SizedBox(height: 30),
-
-              // Role Selection (For User or Admin)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  ChoiceChip(
-                    label: const Text('User'),
-                    selected: _role == 'user',
-                    onSelected: (selected) {
-                      setState(() {
-                        _role = 'user';
-                      });
-                    },
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
-                  const SizedBox(width: 10),
-                  ChoiceChip(
-                    label: const Text('Admin'),
-                    selected: _role == 'admin',
-                    onSelected: (selected) {
-                      setState(() {
-                        _role = 'admin';
-                      });
-                    },
-                  ),
-                ],
-              ),
-              SizedBox(height: 30),
-
-              // Email Field
-              _buildTextField(
-                controller: _emailController,
-                label: 'Email',
-                prefixIcon: Icons.email,
-                isValid: _isEmailValid,
-                errorMessage: 'Enter a valid email.',
-                onChanged: _validateEmail,
-                screenWidth: screenWidth,
-              ),
-              SizedBox(height: 20),
-
-              // Password Field
-              _buildTextField(
-                controller: _passwordController,
-                label: 'Password',
-                prefixIcon: Icons.lock,
-                isValid: _isPasswordValid,
-                errorMessage: 'Password must be at least 8 characters.',
-                obscureText: !_isPasswordVisible,
-                onChanged: _validatePassword,
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
-                    color: Colors.blue,
-                  ),
-                  onPressed: () {
-                    setState(() => _isPasswordVisible = !_isPasswordVisible);
-                  },
-                ),
-                screenWidth: screenWidth,
-              ),
-              SizedBox(height: 30),
-
-              // Login Button
-              _isLoading
-                  ? Column(
-                children: const [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 10),
-                  Text(
-                    'Logging in, please wait...',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                ],
-              )
-                  : ElevatedButton(
-                onPressed: _isEmailValid && _isPasswordValid
-                    ? () => _login(context)
-                    : null, // Disable when invalid
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: Colors.blue,
-                  padding: EdgeInsets.symmetric(vertical: 15, horizontal: 60),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                ),
-                child: const Text(
-                  'Login',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ),
-              SizedBox(height: 20),
-
-              // Forgot Password Navigation
-              TextButton(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const ForgotPasswordScreen()),
-                ),
-                child: const Text(
-                  'Forgot Password?',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                ),
-              ),
-
-              // Signup Navigation
-              TextButton(
-                onPressed: () => Navigator.pushNamed(context, '/signup'),
-                child: const Text(
-                  'Don\'t have an account? Sign Up',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ],
+                );
+              },
+            ),
           ),
         ),
       ),
     );
   }
 
-  // Reusable Text Field widget
   Widget _buildTextField({
     required TextEditingController controller,
     required String label,
@@ -264,7 +295,6 @@ class _LoginScreenState extends State<LoginScreen> {
     required bool isValid,
     required String errorMessage,
     bool obscureText = false,
-    void Function(String)? onChanged,
     Widget? suffixIcon,
     required double screenWidth,
   }) {
@@ -273,7 +303,6 @@ class _LoginScreenState extends State<LoginScreen> {
       child: TextField(
         controller: controller,
         obscureText: obscureText,
-        onChanged: onChanged,
         decoration: InputDecoration(
           hintText: label,
           filled: true,
@@ -284,7 +313,8 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(30),
-            borderSide: BorderSide(color: isValid ? Colors.green : Colors.red),
+            borderSide:
+            BorderSide(color: isValid ? Colors.green : Colors.red, width: 1.5),
           ),
           errorText: !isValid ? errorMessage : null,
           prefixIcon: Icon(prefixIcon),

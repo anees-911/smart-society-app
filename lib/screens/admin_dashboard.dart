@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'admin_event_approvals.dart'; // Import the Admin Event Approvals screen
-import 'admin_add_events.dart';
-import 'admin_maintenance_hub.dart'; // Import the Admin Add Event screen
+import 'admin_event_approvals.dart';
+import 'admin_property_approvals.dart';
+import 'admin_myprofile.dart';
+import 'admin_market_directory.dart';
+import 'admin_street_lighting_screen.dart';
+import 'admin_resident_management.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({Key? key}) : super(key: key);
@@ -22,43 +25,35 @@ class _AdminDashboardState extends State<AdminDashboard> {
     _fetchAdminData();
   }
 
-  // Fetch admin data from Firestore based on current logged-in user
   Future<void> _fetchAdminData() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        print("Fetching data for admin with UID: ${user.uid}");
-
         final querySnapshot = await FirebaseFirestore.instance
             .collection('users')
             .where('uid', isEqualTo: user.uid)
-            .where('role', isEqualTo: 'admin') // Ensure only admin is fetched
+            .where('role', isEqualTo: 'admin')
             .get();
 
         if (querySnapshot.docs.isNotEmpty) {
           final adminDoc = querySnapshot.docs.first;
-          print("Admin data fetched: ${adminDoc.data()}");
-
           setState(() {
             adminName = adminDoc['name'] ?? 'Admin';
-            adminEmail = adminDoc['email'] ?? user.email; // Fallback to Firebase email
+            adminEmail = adminDoc['email'] ?? user.email;
           });
         } else {
-          print("No admin document found for UID: ${user.uid}");
           setState(() {
             adminName = "Admin";
             adminEmail = user.email ?? "Unknown Email";
           });
         }
       } else {
-        print("No logged-in admin user found.");
         setState(() {
           adminName = "No Admin Found";
           adminEmail = "No Email Found";
         });
       }
     } catch (error) {
-      print("Error fetching admin data: $error");
       setState(() {
         adminName = "Error Loading Admin";
         adminEmail = "Error Loading Email";
@@ -75,11 +70,75 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
-  void _showNotificationMessage(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('No new notifications.'),
-        duration: Duration(seconds: 2),
+  void _showNotificationDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Notifications'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Notification 1: New event request pending.'),
+              SizedBox(height: 10),
+              Text('Notification 2: Maintenance request approved.'),
+              SizedBox(height: 10),
+              Text('Notification 3: New property listing added.'),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildQuickActionCard(
+      String title, IconData icon, Color color, BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        if (title == 'Event Approvals') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) => AdminEventApprovalsScreen()),
+          );
+        } else if (title == 'Resident Management') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) => const AdminResidentManagement()),
+          );
+        } else {
+          _showFeatureNotAvailableMessage(context);
+        }
+      },
+      child: Container(
+        width: MediaQuery.of(context).size.width * 0.4,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.9),
+          borderRadius: BorderRadius.circular(15),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, size: 30, color: Colors.white),
+            const SizedBox(height: 10),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                  fontWeight: FontWeight.w600, color: Colors.white),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -95,7 +154,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications),
-            onPressed: () => _showNotificationMessage(context),
+            onPressed: () => _showNotificationDialog(context),
           ),
         ],
       ),
@@ -108,7 +167,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
             const SizedBox(height: 20),
             _buildOverviewSection(),
             const SizedBox(height: 20),
-            _buildQuickActionsSection(context), // Updated section to include Maintenance Hub and Event Approvals
+            _buildQuickActionsSection(context),
           ],
         ),
       ),
@@ -116,7 +175,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
-  // Drawer menu with links to different admin features
   Widget _buildDrawer(BuildContext context) {
     return Drawer(
       child: ListView(
@@ -134,11 +192,12 @@ class _AdminDashboardState extends State<AdminDashboard> {
             ),
           ),
           _buildDrawerItem(Icons.lightbulb, 'Street Lighting', context),
-          _buildDrawerItem(Icons.event, 'Event Approvals', context), // New link for Event Approvals
+          _buildDrawerItem(Icons.event, 'Event Approvals', context),
           _buildDrawerItem(Icons.people, 'Resident Management', context),
-          _buildDrawerItem(Icons.build, 'Maintenance Hub', context), // Added "Maintenance Hub"
+          _buildDrawerItem(Icons.build, 'Maintenance Hub', context),
           _buildDrawerItem(Icons.apartment, 'Property Approvals', context),
           _buildDrawerItem(Icons.store, 'Marketplace', context),
+          _buildDrawerItem(Icons.person, 'My Profile', context),
           const Divider(),
           _buildDrawerItem(Icons.logout, 'Logout', context, isLogout: true),
         ],
@@ -146,8 +205,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
-  // Handle navigation from the Drawer
-  Widget _buildDrawerItem(IconData icon, String title, BuildContext context, {bool isLogout = false}) {
+  Widget _buildDrawerItem(IconData icon, String title, BuildContext context,
+      {bool isLogout = false}) {
     return ListTile(
       leading: Icon(icon),
       title: Text(title),
@@ -155,15 +214,40 @@ class _AdminDashboardState extends State<AdminDashboard> {
         if (isLogout) {
           Navigator.pushReplacementNamed(context, '/login');
         } else {
-          if (title == 'Event Approvals') {
+          if (title == 'Property Approvals') {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => AdminEventApprovalsScreen()), // Navigate to Event Approvals
+              MaterialPageRoute(
+                  builder: (context) => const AdminPropertyApprovalsScreen()),
             );
-          } else if (title == 'Maintenance Hub') {
+          } else if (title == 'Event Approvals') {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const AdminMaintenanceHub()), // Navigate to Maintenance Hub
+              MaterialPageRoute(
+                  builder: (context) => AdminEventApprovalsScreen()),
+            );
+          } else if (title == 'Resident Management') {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => const AdminResidentManagement()),
+            );
+          } else if (title == 'My Profile') {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const AdminMyProfile()),
+            );
+          } else if (title == 'Marketplace') {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => AdminMarketDirectoryScreen()),
+            );
+          } else if (title == 'Street Lighting') {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => StreetLightingScreen()),
             );
           } else {
             _showFeatureNotAvailableMessage(context);
@@ -173,7 +257,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
-  // Display the welcome message to the admin
   Widget _buildWelcomeSection() {
     return Container(
       decoration: const BoxDecoration(
@@ -209,7 +292,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
-  // Display overview of various metrics for the admin
   Widget _buildOverviewSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -230,7 +312,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            _buildOverviewCard('Maintenance Requests', '8', Colors.redAccent),
+            _buildOverviewCard(
+                'Maintenance Requests', '8', Colors.redAccent),
             _buildOverviewCard('Properties', '12', Colors.greenAccent),
           ],
         ),
@@ -238,7 +321,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
-  // Helper widget for the overview cards
   Widget _buildOverviewCard(String title, String value, Color color) {
     return Expanded(
       child: Card(
@@ -277,7 +359,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
-  // Display quick actions like managing street lighting, events, etc.
   Widget _buildQuickActionsSection(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -291,49 +372,22 @@ class _AdminDashboardState extends State<AdminDashboard> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             _buildQuickActionCard(
-                'Street Lighting', Icons.lightbulb, Colors.blueAccent, context),
-            _buildQuickActionCard(
                 'Event Approvals', Icons.event, Colors.orangeAccent, context),
+            _buildQuickActionCard('Street Lighting', Icons.lightbulb,
+                Colors.blueAccent, context),
           ],
         ),
         const SizedBox(height: 10),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
+            _buildQuickActionCard('Resident Management', Icons.people,
+                Colors.purpleAccent, context),
             _buildQuickActionCard(
-                'Resident Management', Icons.people, Colors.purpleAccent, context),
-            _buildQuickActionCard(
-                'Maintenance Hub', Icons.build, Colors.redAccent, context), // Updated
+                'Maintenance Hub', Icons.build, Colors.redAccent, context),
           ],
         ),
       ],
-    );
-  }
-
-  // Helper widget for quick action cards
-  Widget _buildQuickActionCard(
-      String title, IconData icon, Color color, BuildContext context) {
-    return GestureDetector(
-      onTap: () => _showFeatureNotAvailableMessage(context),
-      child: Container(
-        width: MediaQuery.of(context).size.width * 0.4,
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.9),
-          borderRadius: BorderRadius.circular(15),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, size: 30, color: Colors.white),
-            const SizedBox(height: 10),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.white),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
