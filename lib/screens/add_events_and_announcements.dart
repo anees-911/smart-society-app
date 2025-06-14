@@ -10,35 +10,65 @@ class AddEventAndAnnouncementScreen extends StatefulWidget {
 
 class _AddEventAndAnnouncementScreenState
     extends State<AddEventAndAnnouncementScreen> {
-  final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _dateController = TextEditingController();
 
   bool _isLoading = false;
   String _errorMessage = '';
 
-  // Function to pick a date using the date picker
-  Future<void> _selectDate(BuildContext context) async {
-    DateTime? pickedDate = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2101),
-    );
+  final List<String> eventTitles = [
+    'Community Meeting',
+    'Annual Gathering',
+    'Sports Event',
+    'Workshop',
+    'Social Gathering',
+    'Birthday Party'
+  ];
+  String? _selectedEventTitle;
 
-    if (pickedDate != null) {
+  DateTime? _selectedDate;
+
+  Future<void> _selectDateAndTime(BuildContext context) async {
+    DateTime currentDateTime = DateTime.now();
+    DateTime? pickedDateTime = await showDatePicker(
+      context: context,
+      initialDate: currentDateTime,
+      firstDate: currentDateTime,
+      lastDate: DateTime(2101),
+    ).then((pickedDate) {
+      if (pickedDate != null) {
+        return showTimePicker(
+          context: context,
+          initialTime: TimeOfDay.fromDateTime(currentDateTime),
+        ).then((pickedTime) {
+          if (pickedTime != null) {
+            return DateTime(
+              pickedDate.year,
+              pickedDate.month,
+              pickedDate.day,
+              pickedTime.hour,
+              pickedTime.minute,
+            );
+          }
+          return null;
+        });
+      }
+      return null;
+    });
+
+    if (pickedDateTime != null) {
       setState(() {
-        _dateController.text = pickedDate.toLocal().toString().split(' ')[0]; // Display date in YYYY-MM-DD format
+        _selectedDate = pickedDateTime;
+        _dateController.text =
+        "${_selectedDate!.toLocal().toString().split(' ')[0]} ${_selectedDate!.hour}:${_selectedDate!.minute.toString().padLeft(2, '0')}";
       });
     }
   }
 
-  // Add event to Firestore
   Future<void> _addEvent() async {
-    // Validate form fields
-    if (_titleController.text.trim().isEmpty ||
-        _descriptionController.text.trim().isEmpty ||
-        _dateController.text.trim().isEmpty) {
+    if (_descriptionController.text.trim().isEmpty ||
+        _dateController.text.trim().isEmpty ||
+        _selectedEventTitle == null) {
       setState(() {
         _errorMessage = 'Please fill out all fields before submitting.';
       });
@@ -49,16 +79,18 @@ class _AddEventAndAnnouncementScreenState
     if (user != null) {
       setState(() {
         _isLoading = true;
-        _errorMessage = ''; // Clear any previous error messages
+        _errorMessage = '';
       });
 
       try {
+        DateTime eventDateTime = _selectedDate!;
+
         await FirebaseFirestore.instance.collection('events').add({
-          'title': _titleController.text.trim(),
+          'title': _selectedEventTitle,
           'description': _descriptionController.text.trim(),
-          'date': Timestamp.fromDate(DateTime.parse(_dateController.text)), // Store the selected date
+          'date': Timestamp.fromDate(eventDateTime),
           'createdBy': user.uid,
-          'status': 'pending', // Default status is pending until admin approval
+          'status': 'pending',
           'createdAt': FieldValue.serverTimestamp(),
         });
 
@@ -67,12 +99,9 @@ class _AddEventAndAnnouncementScreenState
           backgroundColor: Colors.green,
         ));
 
-        // Clear the fields after submission
-        _titleController.clear();
         _descriptionController.clear();
         _dateController.clear();
 
-        // Go back to the previous screen
         Navigator.pop(context);
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -92,7 +121,7 @@ class _AddEventAndAnnouncementScreenState
     return Scaffold(
       appBar: AppBar(
         title: const Text("Add Event/Announcement"),
-        backgroundColor: Colors.green, // Match the dashboard color
+        backgroundColor: Colors.green,
         centerTitle: true,
       ),
       body: Padding(
@@ -105,17 +134,27 @@ class _AddEventAndAnnouncementScreenState
                 'Event Title',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
-              TextField(
-                controller: _titleController,
-                decoration: InputDecoration(
-                  hintText: "Enter event title",
-                  border: const OutlineInputBorder(),
-                  filled: true,
-                  fillColor: Colors.white,
+              DropdownButtonFormField<String>(
+                value: _selectedEventTitle,
+                decoration: const InputDecoration(
+                  hintText: 'Select event title',
+                  border: OutlineInputBorder(),
                 ),
+                items: eventTitles.map((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(value),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _selectedEventTitle = value;
+                  });
+                },
+                validator: (value) =>
+                value == null ? 'Please select an event title' : null,
               ),
               const SizedBox(height: 20),
-
               const Text(
                 'Event Description',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -123,36 +162,33 @@ class _AddEventAndAnnouncementScreenState
               TextField(
                 controller: _descriptionController,
                 maxLines: 5,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   hintText: "Enter event description",
-                  border: const OutlineInputBorder(),
+                  border: OutlineInputBorder(),
                   filled: true,
                   fillColor: Colors.white,
                 ),
               ),
               const SizedBox(height: 20),
-
               const Text(
-                'Event Date',
+                'Event Date & Time',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               TextField(
                 controller: _dateController,
                 readOnly: true,
                 decoration: InputDecoration(
-                  hintText: "Pick event date",
+                  hintText: "Pick event date and time",
                   border: const OutlineInputBorder(),
                   filled: true,
                   fillColor: Colors.white,
                   suffixIcon: IconButton(
                     icon: const Icon(Icons.calendar_today),
-                    onPressed: () => _selectDate(context),
+                    onPressed: () => _selectDateAndTime(context),
                   ),
                 ),
               ),
               const SizedBox(height: 20),
-
-              // Error Message Display
               if (_errorMessage.isNotEmpty)
                 Text(
                   _errorMessage,
@@ -160,7 +196,6 @@ class _AddEventAndAnnouncementScreenState
                       color: Colors.red, fontWeight: FontWeight.bold),
                 ),
               const SizedBox(height: 10),
-
               _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : ElevatedButton(
@@ -172,9 +207,7 @@ class _AddEventAndAnnouncementScreenState
                 ),
                 child: const Text(
                   'Submit Event',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18),
+                  style: TextStyle(color: Colors.white, fontSize: 18),
                 ),
               ),
             ],

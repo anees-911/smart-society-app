@@ -11,7 +11,6 @@ plugins {
 android {
     namespace = "com.myfyp.sm1"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8

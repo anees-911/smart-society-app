@@ -1,4 +1,3 @@
-// event_details_screen.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
@@ -15,16 +14,18 @@ class EventDetailsScreen extends StatelessWidget {
     // Manually format the date (YYYY-MM-DD)
     String formattedDate = '${eventDate.year}-${eventDate.month.toString().padLeft(2, '0')}-${eventDate.day.toString().padLeft(2, '0')}';
 
+    // Manually format the time (HH:MM AM/PM)
+    String formattedTime = '${eventDate.hour.toString().padLeft(2, '0')}:${eventDate.minute.toString().padLeft(2, '0')} ${eventDate.hour >= 12 ? 'PM' : 'AM'}';
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
           event['title'] ?? 'Event Details',
-         ),
+        ),
         backgroundColor: Colors.green, // Green background color
         centerTitle: true, // Center the title
         elevation: 2,
       ),
-
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -45,6 +46,12 @@ class EventDetailsScreen extends StatelessWidget {
             // Event Date (formatted)
             Text(
               'Event Date: $formattedDate',
+              style: const TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 10),
+            // Event Time (formatted)
+            Text(
+              'Event Time: $formattedTime',
               style: const TextStyle(fontSize: 16),
             ),
           ],

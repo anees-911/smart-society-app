@@ -5,7 +5,6 @@ import 'admin_event_approvals.dart';
 import 'admin_property_approvals.dart';
 import 'admin_myprofile.dart';
 import 'admin_market_directory.dart';
-import 'admin_street_lighting_screen.dart';
 import 'admin_resident_management.dart';
 
 class AdminDashboard extends StatefulWidget {
@@ -243,13 +242,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
               MaterialPageRoute(
                   builder: (context) => AdminMarketDirectoryScreen()),
             );
-          } else if (title == 'Street Lighting') {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (context) => StreetLightingScreen()),
-            );
-          } else {
+          }
+          else {
             _showFeatureNotAvailableMessage(context);
           }
         }

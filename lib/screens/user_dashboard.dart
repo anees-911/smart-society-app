@@ -108,14 +108,15 @@ class _UserDashboardState extends State<UserDashboard> {
             currentAccountPicture: CircleAvatar(
               backgroundColor: Colors.white,
               backgroundImage: userImageUrl.isNotEmpty
-                  ? NetworkImage(userImageUrl) // Display image if URL is available
-                  : const AssetImage('assets/default_profile_image.png') as ImageProvider, // Default image if no profile picture
+                  ? NetworkImage(userImageUrl) // Fetch from Firestore
+                  : const AssetImage('assets/default_profile_image.png') as ImageProvider, // Default image if needed
               radius: 40,
             ),
             decoration: const BoxDecoration(
               color: Colors.greenAccent,
             ),
           ),
+
           _buildDrawerItem(Icons.event, 'Events & Announcements', context),
           _buildDrawerItem(Icons.home, 'Available Rentals', context),
           _buildDrawerItem(Icons.add_business, 'List Your Property', context),

@@ -1,18 +1,34 @@
+buildscript {
+    repositories {
+        google()  // Repository for Android dependencies
+        mavenCentral()  // Repository for other dependencies
+    }
+    dependencies {
+        // Updated Android Gradle Plugin version to 8.3.0 as recommended
+        classpath 'com.android.tools.build:gradle:8.3.0'
+        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.0'
+    }
+}
+
 allprojects {
     repositories {
-        google()
-        mavenCentral()
+        google()  // Repository for Android dependencies
+        mavenCentral()  // Repository for other dependencies
     }
 }
 
 rootProject.buildDir = "../build"
+
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
 }
+
 subprojects {
     project.evaluationDependsOn(":app")
 }
 
+
+// Registering a clean task to delete the build directory
 tasks.register("clean", Delete) {
     delete rootProject.buildDir
 }
