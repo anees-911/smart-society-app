@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'admin_market_directory_details.dart'; // For navigating to the details screen
-import 'admin_add_market_directory.dart'; // Import the Admin Add Market Directory screen
+import 'admin_add_market_directory.dart';
 
 class AdminMarketDirectoryScreen extends StatefulWidget {
   @override

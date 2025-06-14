@@ -10,22 +10,43 @@ class AdminAddEventScreen extends StatefulWidget {
 class _AdminAddEventScreenState extends State<AdminAddEventScreen> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
-  final TextEditingController _dateController = TextEditingController();
+  final TextEditingController _dateTimeController = TextEditingController();
 
   bool _isLoading = false;
+  DateTime selectedDate = DateTime.now();
+  TimeOfDay selectedTime = TimeOfDay(hour: 12, minute: 0);
 
-  // Function to pick a date using the date picker
-  Future<void> _selectDate(BuildContext context) async {
+  // Function to pick a date and time using the date picker and time picker
+  Future<void> _selectDateTime(BuildContext context) async {
     DateTime? pickedDate = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
-      firstDate: DateTime(2000),
+      firstDate: DateTime.now(), // Restrict selecting past dates
       lastDate: DateTime(2101),
     );
 
-    if (pickedDate != null) {
+    if (pickedDate != null && pickedDate != selectedDate) {
       setState(() {
-        _dateController.text = pickedDate.toLocal().toString().split(' ')[0]; // Display date in YYYY-MM-DD format
+        selectedDate = pickedDate;
+      });
+
+      // After date selection, show the time picker
+      _selectTime(context);
+    }
+  }
+
+  // Function to pick time using Time Picker
+  Future<void> _selectTime(BuildContext context) async {
+    TimeOfDay? pickedTime = await showTimePicker(
+      context: context,
+      initialTime: selectedTime,
+    );
+
+    if (pickedTime != null && pickedTime != selectedTime) {
+      setState(() {
+        selectedTime = pickedTime;
+        _dateTimeController.text =
+        "${selectedDate.toLocal().toString().split(' ')[0]} ${selectedTime.format(context)}"; // Combine date and time
       });
     }
   }
@@ -39,10 +60,18 @@ class _AdminAddEventScreenState extends State<AdminAddEventScreen> {
       });
 
       try {
+        DateTime eventDateTime = DateTime(
+          selectedDate.year,
+          selectedDate.month,
+          selectedDate.day,
+          selectedTime.hour,
+          selectedTime.minute,
+        );
+
         await FirebaseFirestore.instance.collection('events').add({
           'title': _titleController.text.trim(),
           'description': _descriptionController.text.trim(),
-          'date': Timestamp.fromDate(DateTime.parse(_dateController.text)), // Store the selected date
+          'date': Timestamp.fromDate(eventDateTime), // Store the selected date and time
           'createdBy': user.uid,
           'status': 'approved', // Admin can approve their own event
           'createdAt': FieldValue.serverTimestamp(),
@@ -56,7 +85,7 @@ class _AdminAddEventScreenState extends State<AdminAddEventScreen> {
         // Clear the fields after submission
         _titleController.clear();
         _descriptionController.clear();
-        _dateController.clear();
+        _dateTimeController.clear();
 
         // Go back to the previous screen
         Navigator.pop(context);
@@ -78,7 +107,7 @@ class _AdminAddEventScreenState extends State<AdminAddEventScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Add Event"),
-        backgroundColor: Colors.green.shade700,
+        backgroundColor: Colors.blueAccent,
         centerTitle: true,
       ),
       body: Padding(
@@ -119,20 +148,20 @@ class _AdminAddEventScreenState extends State<AdminAddEventScreen> {
               const SizedBox(height: 20),
 
               const Text(
-                'Event Date',
+                'Event Date & Time',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               TextField(
-                controller: _dateController,
+                controller: _dateTimeController,
                 readOnly: true,
                 decoration: InputDecoration(
-                  hintText: "Pick event date",
+                  hintText: "Pick event date and time",
                   border: OutlineInputBorder(),
                   filled: true,
                   fillColor: Colors.white,
                   suffixIcon: IconButton(
                     icon: const Icon(Icons.calendar_today),
-                    onPressed: () => _selectDate(context),
+                    onPressed: () => _selectDateTime(context),
                   ),
                 ),
               ),
@@ -143,7 +172,7 @@ class _AdminAddEventScreenState extends State<AdminAddEventScreen> {
                   : ElevatedButton(
                 onPressed: _addEvent,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green.shade700,
+                  backgroundColor: Colors.blueAccent,
                   padding: const EdgeInsets.symmetric(
                       vertical: 15, horizontal: 40),
                 ),

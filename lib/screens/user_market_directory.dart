@@ -9,13 +9,55 @@ class UserMarketDirectoryScreen extends StatefulWidget {
 }
 
 class _UserMarketDirectoryScreenState extends State<UserMarketDirectoryScreen> {
-  // Fetch market directory data from Firestore
-  Future<List<DocumentSnapshot>> _fetchMarketDirectory() async {
-    final snapshot = await FirebaseFirestore.instance
-        .collection('market_directory') // Collection for market directory
-        .get();
+  TextEditingController _searchController = TextEditingController();
+  List<DocumentSnapshot> _allMarkets = [];
+  List<DocumentSnapshot> _filteredMarkets = [];
+  bool _isLoading = true; // Loading state
+  String _errorMessage = ''; // Error message if any
 
-    return snapshot.docs;
+  @override
+  void initState() {
+    super.initState();
+    _fetchMarketDirectory();
+  }
+
+  // Fetch market directory data from Firestore
+  Future<void> _fetchMarketDirectory() async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('market_directory') // Collection for market directory
+          .get();
+
+      if (snapshot.docs.isEmpty) {
+        setState(() {
+          _errorMessage = 'No market data found.';
+          _isLoading = false;
+        });
+        return;
+      }
+
+      setState(() {
+        _allMarkets = snapshot.docs;
+        _filteredMarkets = _allMarkets; // Initially, display all markets
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'An error occurred while fetching data.';
+        _isLoading = false;
+      });
+      print("Error fetching data: $e");
+    }
+  }
+
+  // Filter markets based on search query
+  void _filterMarkets(String query) {
+    setState(() {
+      _filteredMarkets = _allMarkets.where((market) {
+        return market['name'].toLowerCase().contains(query.toLowerCase()) ||
+            market['category'].toLowerCase().contains(query.toLowerCase());
+      }).toList();
+    });
   }
 
   @override
@@ -25,52 +67,63 @@ class _UserMarketDirectoryScreenState extends State<UserMarketDirectoryScreen> {
         title: const Text("Market Directory"),
         backgroundColor: Colors.green,
         centerTitle: true,
-      ),
-      body: FutureBuilder<List<DocumentSnapshot>>(
-        future: _fetchMarketDirectory(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text("No market data found."));
-          }
-
-          return ListView.builder(
-            itemCount: snapshot.data!.length,
-            itemBuilder: (context, index) {
-              final market = snapshot.data![index];
-              return Card(
-                margin: const EdgeInsets.symmetric(vertical: 8),
-                elevation: 4,
-                shape: RoundedRectangleBorder(
+        bottom: PreferredSize(
+          preferredSize: Size.fromHeight(50),
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextField(
+              controller: _searchController,
+              onChanged: _filterMarkets,
+              decoration: InputDecoration(
+                hintText: 'Search markets...',
+                prefixIcon: Icon(Icons.search),
+                border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: ListTile(
-                  title: Text(
-                    market['name'], // Display market/shop name
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 18),
-                  ),
-                  subtitle: Text(
-                    market['category'], // Display shop category (e.g., Electrician, General Store)
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                  onTap: () {
-                    // Navigate to market details page
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => UserMarketDirectoryDetailsScreen(
+              ),
+            ),
+          ),
+        ),
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _errorMessage.isNotEmpty
+          ? Center(child: Text(_errorMessage))
+          : _filteredMarkets.isEmpty
+          ? const Center(child: Text("No matching markets found."))
+          : ListView.builder(
+        itemCount: _filteredMarkets.length,
+        itemBuilder: (context, index) {
+          final market = _filteredMarkets[index];
+          return Card(
+            margin: const EdgeInsets.symmetric(vertical: 8),
+            elevation: 4,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: ListTile(
+              title: Text(
+                market['name'],
+                style: const TextStyle(
+                    fontWeight: FontWeight.bold, fontSize: 18),
+              ),
+              subtitle: Text(
+                market['category'],
+                style: const TextStyle(fontSize: 16),
+              ),
+              onTap: () {
+                // Navigate to market details page
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        UserMarketDirectoryDetailsScreen(
                           marketId: market.id, // Pass market ID for details screen
                         ),
-                      ),
-                    );
-                  },
-                ),
-              );
-            },
+                  ),
+                );
+              },
+            ),
           );
         },
       ),

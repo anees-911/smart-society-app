@@ -46,6 +46,10 @@ class _AdminMarketDirectoryDetailsScreenState extends State<AdminMarketDirectory
       }
     } catch (e) {
       print("Error fetching market details: $e");
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Failed to fetch market details. Please try again later.'),
+        backgroundColor: Colors.red,
+      ));
     }
   }
 
@@ -81,17 +85,23 @@ class _AdminMarketDirectoryDetailsScreenState extends State<AdminMarketDirectory
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Market Details
             Text('Shop Name: $_shopName', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             Text('Contact: $_contactNumber', style: TextStyle(fontSize: 16)),
             Text('Address: $_address', style: TextStyle(fontSize: 16)),
             Text('Category: $_category', style: TextStyle(fontSize: 16)),
             SizedBox(height: 20),
+
+            // Enlarged map with increased height
             Container(
-              height: 300,
+              height: 450, // Increased map height
+              width: double.infinity, // Take up full width of the screen
               child: _marketLocation.latitude == 0.0
                   ? Center(child: CircularProgressIndicator())
                   : _buildMap(),
             ),
+
+            // Action Buttons (Edit, Delete)
             Row(
               children: [
                 IconButton(
@@ -102,13 +112,17 @@ class _AdminMarketDirectoryDetailsScreenState extends State<AdminMarketDirectory
                 ),
                 IconButton(
                   icon: Icon(Icons.delete, color: Colors.red),
-                  onPressed: () {
-                    _firestore.collection('market_directory').doc(widget.marketId).delete();
+                  onPressed: () async {
+                    await _firestore.collection('market_directory').doc(widget.marketId).delete();
                     Navigator.pop(context); // Go back after deletion
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      content: Text('Market directory deleted successfully!'),
+                      backgroundColor: Colors.green,
+                    ));
                   },
                 ),
               ],
-            )
+            ),
           ],
         ),
       ),

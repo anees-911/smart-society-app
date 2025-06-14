@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'admin_event_approvals.dart';
+import 'admin_maintenance_hub.dart';
 import 'admin_property_approvals.dart';
 import 'admin_myprofile.dart';
 import 'admin_market_directory.dart';
@@ -17,6 +18,8 @@ class AdminDashboard extends StatefulWidget {
 class _AdminDashboardState extends State<AdminDashboard> {
   String? adminName = "Loading...";
   String? adminEmail = "Loading...";
+  String? adminProfilePic = ""; // Variable to store profile picture URL
+  bool _isLoading = true; // Variable to show loading state
 
   @override
   void initState() {
@@ -24,6 +27,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     _fetchAdminData();
   }
 
+  // Fetch admin data from Firestore
   Future<void> _fetchAdminData() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
@@ -39,27 +43,37 @@ class _AdminDashboardState extends State<AdminDashboard> {
           setState(() {
             adminName = adminDoc['name'] ?? 'Admin';
             adminEmail = adminDoc['email'] ?? user.email;
+            adminProfilePic = adminDoc['profile_picture'] ?? ''; // Fetch profile picture URL
+            _isLoading = false; // Set loading to false after data is fetched
           });
         } else {
           setState(() {
             adminName = "Admin";
             adminEmail = user.email ?? "Unknown Email";
+            adminProfilePic = ''; // No profile picture available
+            _isLoading = false;
           });
         }
       } else {
         setState(() {
           adminName = "No Admin Found";
           adminEmail = "No Email Found";
+          adminProfilePic = ''; // No profile picture available
+          _isLoading = false;
         });
       }
     } catch (error) {
       setState(() {
         adminName = "Error Loading Admin";
         adminEmail = "Error Loading Email";
+        adminProfilePic = ''; // No profile picture available
+        _isLoading = false; // Set loading to false after error
       });
+      print("Error fetching admin data: $error"); // Log the error for debugging
     }
   }
 
+  // Show a feature not available message
   void _showFeatureNotAvailableMessage(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -69,6 +83,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
+  // Show notifications in a dialog
   void _showNotificationDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -99,6 +114,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
+  // Build the quick action card for different actions
   Widget _buildQuickActionCard(
       String title, IconData icon, Color color, BuildContext context) {
     return GestureDetector(
@@ -115,7 +131,14 @@ class _AdminDashboardState extends State<AdminDashboard> {
             MaterialPageRoute(
                 builder: (context) => const AdminResidentManagement()),
           );
-        } else {
+        } else if (title == 'Maintenance Hub') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) => const AdminMaintenanceHub()),
+          );
+        }
+        else {
           _showFeatureNotAvailableMessage(context);
         }
       },
@@ -174,17 +197,30 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
+  // Build the drawer containing admin's profile information and options
   Widget _buildDrawer(BuildContext context) {
     return Drawer(
       child: ListView(
         children: [
-          UserAccountsDrawerHeader(
+          _isLoading
+              ? const UserAccountsDrawerHeader(
+            accountName: Text('Loading...'),
+            accountEmail: Text('Loading...'),
+            currentAccountPicture:
+            CircleAvatar(backgroundColor: Colors.white),
+            decoration: BoxDecoration(
+              color: Colors.blueAccent,
+            ),
+          )
+              : UserAccountsDrawerHeader(
             accountName: Text(adminName ?? 'Loading...'),
             accountEmail: Text(adminEmail ?? 'Loading...'),
-            currentAccountPicture: const CircleAvatar(
+            currentAccountPicture: CircleAvatar(
               backgroundColor: Colors.white,
-              child: Icon(Icons.admin_panel_settings,
-                  size: 50, color: Colors.blueAccent),
+              backgroundImage: adminProfilePic != null && adminProfilePic!.isNotEmpty
+                  ? NetworkImage(adminProfilePic!) // Display profile picture if available
+                  : const AssetImage('assets/default_profile_image.png') as ImageProvider, // Fallback to default icon
+              radius: 40, // Ensure the image is round by setting the radius
             ),
             decoration: const BoxDecoration(
               color: Colors.blueAccent,
@@ -204,6 +240,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
+  // Drawer item creation
   Widget _buildDrawerItem(IconData icon, String title, BuildContext context,
       {bool isLogout = false}) {
     return ListTile(
@@ -231,6 +268,12 @@ class _AdminDashboardState extends State<AdminDashboard> {
               MaterialPageRoute(
                   builder: (context) => const AdminResidentManagement()),
             );
+          } else if (title == 'Maintenance Hub') {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => const AdminMaintenanceHub()),
+            );
           } else if (title == 'My Profile') {
             Navigator.push(
               context,
@@ -242,8 +285,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
               MaterialPageRoute(
                   builder: (context) => AdminMarketDirectoryScreen()),
             );
-          }
-          else {
+          } else {
             _showFeatureNotAvailableMessage(context);
           }
         }
@@ -251,6 +293,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
+  // Welcome section UI
   Widget _buildWelcomeSection() {
     return Container(
       decoration: const BoxDecoration(
@@ -286,6 +329,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
+  // Overview section UI
   Widget _buildOverviewSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -315,6 +359,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
+  // Overview card creation
   Widget _buildOverviewCard(String title, String value, Color color) {
     return Expanded(
       child: Card(
@@ -353,6 +398,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
+  // Quick actions section UI
   Widget _buildQuickActionsSection(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

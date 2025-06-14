@@ -14,14 +14,69 @@ class _AdminAddMarketDirectoryScreenState
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _contactController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
-  final TextEditingController _categoryController = TextEditingController();
+  String _selectedCategory = "Select Category";  // Default value
   double _latitude = 0.0;
   double _longitude = 0.0;
 
   bool _isLoading = false;
+  bool _isLocationSelected = false;
+
+  // Available categories for the dropdown
+  final List<String> _categories = [
+    "Select Category",
+    "Grocery",
+    "Clothing",
+    "Electronics",
+    "Restaurants",
+    "Others"
+  ];
+
+  // Function to validate user inputs
+  bool _validateInputs() {
+    if (_nameController.text.trim().isEmpty || _nameController.text.trim().length < 3) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Please enter a valid shop name (at least 3 characters)'),
+        backgroundColor: Colors.red,
+      ));
+      return false;
+    }
+    if (_contactController.text.trim().isEmpty ||
+        _contactController.text.trim().length != 11 ||
+        !_contactController.text.trim().startsWith("03")) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Please enter a valid 11-digit phone number (Pakistan)'),
+        backgroundColor: Colors.red,
+      ));
+      return false;
+    }
+    if (_addressController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Please enter the address'),
+        backgroundColor: Colors.red,
+      ));
+      return false;
+    }
+    if (_selectedCategory == "Select Category") {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Please select a category'),
+        backgroundColor: Colors.red,
+      ));
+      return false;
+    }
+    if (!_isLocationSelected) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Please select a location'),
+        backgroundColor: Colors.red,
+      ));
+      return false;
+    }
+    return true;
+  }
 
   // Function to save market directory to Firestore
   Future<void> _saveMarketDirectory() async {
+    if (!_validateInputs()) return;
+
     setState(() {
       _isLoading = true;
     });
@@ -31,7 +86,7 @@ class _AdminAddMarketDirectoryScreenState
         'name': _nameController.text.trim(),
         'contact': _contactController.text.trim(),
         'address': _addressController.text.trim(),
-        'category': _categoryController.text.trim(),
+        'category': _selectedCategory,
         'latitude': _latitude,
         'longitude': _longitude,
       });
@@ -45,7 +100,12 @@ class _AdminAddMarketDirectoryScreenState
       _nameController.clear();
       _contactController.clear();
       _addressController.clear();
-      _categoryController.clear();
+      setState(() {
+        _selectedCategory = "Select Category";  // Reset the category to the default
+        _latitude = 0.0;
+        _longitude = 0.0;
+        _isLocationSelected = false;
+      });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text('Failed to add market directory: $e'),
@@ -65,23 +125,25 @@ class _AdminAddMarketDirectoryScreenState
       builder: (context) => AlertDialog(
         title: const Text('Pick a Location'),
         content: SizedBox(
-          height: 400,
+          height: 600, // Increased height for larger map
+          width: double.maxFinite, // Full width of the container
           child: GoogleMap(
             initialCameraPosition: CameraPosition(
-              target: LatLng(37.7749, -122.4194), // Default San Francisco
+              target: LatLng(34.1688, 73.2215), // Corrected coordinates for Abbottabad
               zoom: 14,
             ),
             onTap: (LatLng location) {
               setState(() {
                 _latitude = location.latitude;
                 _longitude = location.longitude;
+                _isLocationSelected = true;
               });
               Navigator.pop(context, location);
             },
             markers: {
               Marker(
                 markerId: MarkerId('selected-location'),
-                position: LatLng(_latitude, _longitude),
+                position: LatLng(_latitude, _longitude),  // Display the pin at the updated location
               ),
             },
           ),
@@ -93,6 +155,7 @@ class _AdminAddMarketDirectoryScreenState
       setState(() {
         _latitude = pickedLocation.latitude;
         _longitude = pickedLocation.longitude;
+        _isLocationSelected = true;
       });
     }
   }
@@ -103,6 +166,7 @@ class _AdminAddMarketDirectoryScreenState
       appBar: AppBar(
         title: const Text('Add Market Directory'),
         backgroundColor: Colors.blueAccent,
+        centerTitle: true,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -126,6 +190,7 @@ class _AdminAddMarketDirectoryScreenState
                   prefixIcon: Icon(Icons.phone),
                   border: OutlineInputBorder(),
                 ),
+                keyboardType: TextInputType.phone,
               ),
               const SizedBox(height: 10),
               TextField(
@@ -137,13 +202,25 @@ class _AdminAddMarketDirectoryScreenState
                 ),
               ),
               const SizedBox(height: 10),
-              TextField(
-                controller: _categoryController,
+              // Category Dropdown
+              DropdownButtonFormField<String>(
+                value: _selectedCategory,
+                onChanged: (String? newValue) {
+                  setState(() {
+                    _selectedCategory = newValue!;
+                  });
+                },
                 decoration: const InputDecoration(
                   labelText: 'Category',
                   prefixIcon: Icon(Icons.category),
                   border: OutlineInputBorder(),
                 ),
+                items: _categories.map<DropdownMenuItem<String>>((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(value),
+                  );
+                }).toList(),
               ),
               const SizedBox(height: 20),
               ElevatedButton(
@@ -154,7 +231,8 @@ class _AdminAddMarketDirectoryScreenState
                       : 'Location Selected',
                 ),
                 style: ElevatedButton.styleFrom(
-                  foregroundColor: Colors.white, backgroundColor: Colors.blueAccent,
+                  foregroundColor: Colors.white,
+                  backgroundColor: Colors.blueAccent,
                   padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
                 ),
               ),
@@ -165,7 +243,8 @@ class _AdminAddMarketDirectoryScreenState
                 onPressed: _saveMarketDirectory,
                 child: const Text('Save'),
                 style: ElevatedButton.styleFrom(
-                  foregroundColor: Colors.white, backgroundColor: Colors.blueAccent,
+                  foregroundColor: Colors.white,
+                  backgroundColor: Colors.blueAccent,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
               ),

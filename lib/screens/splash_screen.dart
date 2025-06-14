@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:animated_text_kit/animated_text_kit.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -11,7 +12,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(seconds: 2), () {
+    Future.delayed(const Duration(seconds: 10), () {
       Navigator.pushReplacementNamed(context, '/login');
     });
   }
@@ -36,40 +37,32 @@ class _SplashScreenState extends State<SplashScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircleAvatar(
-              radius: 80,
-              backgroundColor: Colors.white,
-              child: Icon(
-                Icons.home_outlined,
-                size: 80,
-                color: Colors.blue.shade900,
+            ClipOval(
+              child: Image.asset(
+                'assets/images/logo.png',  // Your logo file path
+                width: 400,  // Adjusted size to better fit the logo and text
+                height: 300,  // Adjusted size to better fit the logo and text
+                fit: BoxFit.contain,  // Ensures the logo fits without cutting off the text
               ),
             ),
             const SizedBox(height: 20),
-            const Text(
-              'Smart Society App',
-              style: TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-                shadows: [
-                  Shadow(
-                    blurRadius: 10.0,
-                    color: Colors.black26,
-                    offset: Offset(2, 2),
-                  ),
-                ],
-              ),
-            ),
             const SizedBox(height: 10),
-            const Text(
-              'Simplifying Society Management',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 18,
-                color: Colors.white70,
-                fontStyle: FontStyle.italic,
-              ),
+            // Typewriter animation effect
+            AnimatedTextKit(
+              animatedTexts: [
+                TypewriterAnimatedText(
+                  'Simplifying Society Management',
+                  textStyle: TextStyle(
+                    fontSize: 24,
+                    color: Colors.white70,
+                    fontStyle: FontStyle.italic,
+                  ),
+                  speed: const Duration(milliseconds: 100),  // Speed of typing animation
+                ),
+              ],
+              totalRepeatCount: 3, // Number of times the animation repeats
+              pause: const Duration(milliseconds: 500), // Pause before ending
+              displayFullTextOnTap: true, // Tap to finish the text instantly
             ),
           ],
         ),
