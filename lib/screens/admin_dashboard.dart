@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // Add this import
 import 'admin_event_approvals.dart';
 import 'admin_maintenance_hub.dart';
 import 'admin_property_approvals.dart';
@@ -18,13 +19,27 @@ class AdminDashboard extends StatefulWidget {
 class _AdminDashboardState extends State<AdminDashboard> {
   String? adminName = "Loading...";
   String? adminEmail = "Loading...";
-  String? adminProfilePic = ""; // Variable to store profile picture URL
-  bool _isLoading = true; // Variable to show loading state
+  String? adminProfilePic = "";
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _fetchAdminData();
+    _checkSession(); // Check if admin is logged in
+  }
+
+  // Check if the admin is logged in using SharedPreferences
+  Future<void> _checkSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    final bool isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
+
+    if (isLoggedIn) {
+      // Fetch admin data if logged in
+      _fetchAdminData();
+    } else {
+      // If not logged in, redirect to login screen
+      Navigator.pushReplacementNamed(context, '/login');
+    }
   }
 
   // Fetch admin data from Firestore
@@ -43,8 +58,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
           setState(() {
             adminName = adminDoc['name'] ?? 'Admin';
             adminEmail = adminDoc['email'] ?? user.email;
-            adminProfilePic = adminDoc['profile_picture'] ?? ''; // Fetch profile picture URL
-            _isLoading = false; // Set loading to false after data is fetched
+            adminProfilePic = adminDoc['profile_picture'] ?? '';
+            _isLoading = false; // Stop loading once data is fetched
           });
         } else {
           setState(() {
@@ -58,7 +73,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
         setState(() {
           adminName = "No Admin Found";
           adminEmail = "No Email Found";
-          adminProfilePic = ''; // No profile picture available
+          adminProfilePic = '';
           _isLoading = false;
         });
       }
@@ -66,14 +81,36 @@ class _AdminDashboardState extends State<AdminDashboard> {
       setState(() {
         adminName = "Error Loading Admin";
         adminEmail = "Error Loading Email";
-        adminProfilePic = ''; // No profile picture available
-        _isLoading = false; // Set loading to false after error
+        adminProfilePic = '';
+        _isLoading = false;
       });
-      print("Error fetching admin data: $error"); // Log the error for debugging
+      print("Error fetching admin data: $error");
+      _showMessage('Failed to load admin data: $error');
     }
   }
 
-  // Show a feature not available message
+  // Logout function to clear session and navigate to login screen
+  Future<void> _logout(BuildContext context) async {
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setBool('isLoggedIn', false); // Clear session data
+    prefs.remove('userEmail'); // Remove saved email
+
+    await FirebaseAuth.instance.signOut(); // Sign out from Firebase
+
+    Navigator.pushReplacementNamed(context, '/login'); // Redirect to login screen
+  }
+
+  // **_showMessage** Method to show error/success messages
+  void _showMessage(String message, {bool success = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: success ? Colors.green : Colors.red,
+      ),
+    );
+  }
+
+  // Show feature not available message
   void _showFeatureNotAvailableMessage(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -248,7 +285,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
       title: Text(title),
       onTap: () {
         if (isLogout) {
-          Navigator.pushReplacementNamed(context, '/login');
+          _logout(context); // Call the logout function
         } else {
           if (title == 'Property Approvals') {
             Navigator.push(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:animated_text_kit/animated_text_kit.dart';
+import 'package:shared_preferences/shared_preferences.dart';  // Add this import
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -12,8 +13,26 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
+    _checkSession();  // Check session when splash screen loads
+  }
+
+  // Perform session check
+  Future<void> _checkSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    final bool isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
+
+    // Delay to show splash screen for a moment, then navigate
     Future.delayed(const Duration(seconds: 10), () {
-      Navigator.pushReplacementNamed(context, '/login');
+      if (isLoggedIn) {
+        final userRole = prefs.getString('userRole') ?? 'user';
+        if (userRole == 'admin') {
+          Navigator.pushReplacementNamed(context, '/adminDashboard');  // Navigate to admin dashboard
+        } else {
+          Navigator.pushReplacementNamed(context, '/userDashboard');  // Navigate to user dashboard
+        }
+      } else {
+        Navigator.pushReplacementNamed(context, '/login');  // Navigate to login screen if not logged in
+      }
     });
   }
 

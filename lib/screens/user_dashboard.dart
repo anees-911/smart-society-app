@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // Add this import
 import 'rentals_screen.dart';
 import 'user_events_and_announcements.dart';
 import 'user_market_directory.dart';
@@ -24,41 +25,55 @@ class _UserDashboardState extends State<UserDashboard> {
   @override
   void initState() {
     super.initState();
-    _initializeApp();
+    _checkSession(); // Check if the user is logged in
   }
 
-  // This method handles the FirebaseAuth state changes and fetches user data
-  Future<void> _initializeApp() async {
-    FirebaseAuth.instance.authStateChanges().listen((user) async {
-      if (user != null) {
-        // Fetch user data from Firestore when the user is authenticated
-        await _fetchUserData(user);
-      } else {
-        setState(() {
-          isLoading = false;
-        });
-      }
-    });
+  // Check if the user is logged in from SharedPreferences
+  Future<void> _checkSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    final bool isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
+
+    if (isLoggedIn) {
+      // If logged in, fetch user data from Firebase
+      FirebaseAuth.instance.authStateChanges().listen((user) async {
+        if (user != null) {
+          await _fetchUserData(user);
+        } else {
+          setState(() {
+            isLoading = false;
+          });
+        }
+      });
+    } else {
+      // If not logged in, navigate to login screen
+      Navigator.pushReplacementNamed(context, '/login');
+    }
   }
 
   // Fetch user data from Firestore
   Future<void> _fetchUserData(User user) async {
     try {
-      // Fetch user data from Firestore
       final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
       if (userDoc.exists) {
         setState(() {
           userName = userDoc['name'] ?? 'User';
           userEmail = userDoc['email'] ?? user.email ?? 'No email provided';
           userImageUrl = userDoc['profile_picture'] ?? ''; // Assuming 'profileImageUrl' is stored
-          isLoading = false; // Stop loading once data is fetched
+          isLoading = false;
         });
+      } else {
+        setState(() {
+          isLoading = false;
+        });
+        print('User document does not exist');
+        _showMessage('User document does not exist.');
       }
     } catch (e) {
       setState(() {
         isLoading = false;
       });
-      print('Error fetching user data: $e');
+      print('Error fetching user data: $e'); // Print error for debugging
+      _showMessage('Failed to load user data: ${e.toString()}');
     }
   }
 
@@ -97,26 +112,44 @@ class _UserDashboardState extends State<UserDashboard> {
     );
   }
 
+  // **_showMessage** Method to show error/success messages
+  void _showMessage(String message, {bool success = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: success ? Colors.green : Colors.red,
+      ),
+    );
+  }
+
   // Drawer UI with user data
   Widget _buildDrawer(BuildContext context) {
     return Drawer(
       child: ListView(
         children: [
-          UserAccountsDrawerHeader(
+          isLoading
+              ? const UserAccountsDrawerHeader(
+            accountName: Text('Loading...'),
+            accountEmail: Text('Loading...'),
+            currentAccountPicture: CircleAvatar(backgroundColor: Colors.white),
+            decoration: BoxDecoration(
+              color: Colors.greenAccent,
+            ),
+          )
+              : UserAccountsDrawerHeader(
             accountName: Text(userName),
             accountEmail: Text(userEmail),
             currentAccountPicture: CircleAvatar(
               backgroundColor: Colors.white,
               backgroundImage: userImageUrl.isNotEmpty
-                  ? NetworkImage(userImageUrl) // Fetch from Firestore
-                  : const AssetImage('assets/default_profile_image.png') as ImageProvider, // Default image if needed
+                  ? NetworkImage(userImageUrl)
+                  : const AssetImage('assets/default_profile_image.png') as ImageProvider,
               radius: 40,
             ),
             decoration: const BoxDecoration(
               color: Colors.greenAccent,
             ),
           ),
-
           _buildDrawerItem(Icons.event, 'Events & Announcements', context),
           _buildDrawerItem(Icons.home, 'Available Rentals', context),
           _buildDrawerItem(Icons.add_business, 'List Your Property', context),
@@ -137,8 +170,7 @@ class _UserDashboardState extends State<UserDashboard> {
       title: Text(title),
       onTap: () {
         if (isLogout) {
-          FirebaseAuth.instance.signOut();
-          Navigator.pushReplacementNamed(context, '/login');
+          _logout(context); // Call the logout function
         } else {
           _navigateToScreen(title, context);
         }
@@ -173,6 +205,17 @@ class _UserDashboardState extends State<UserDashboard> {
         duration: Duration(seconds: 2),
       ),
     );
+  }
+
+  // Logout function to clear session and navigate to login screen
+  Future<void> _logout(BuildContext context) async {
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setBool('isLoggedIn', false); // Clear session
+    prefs.remove('userEmail'); // Remove saved email
+
+    await FirebaseAuth.instance.signOut(); // Sign out from Firebase
+
+    Navigator.pushReplacementNamed(context, '/login'); // Navigate to login screen
   }
 
   // Welcome Section UI
@@ -263,7 +306,7 @@ class _UserDashboardState extends State<UserDashboard> {
         elevation: 4,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: Container(
-          height: 130, // Slightly reduced height for consistency
+          height: 130,
           decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(12)),
           padding: const EdgeInsets.all(12.0),
           child: Column(
@@ -291,14 +334,14 @@ class _UserDashboardState extends State<UserDashboard> {
     return GestureDetector(
       onTap: () => _navigateToScreen(title, context),
       child: Container(
-        width: MediaQuery.of(context).size.width * 0.44, // Adjusted width for consistent fit
-        height: 120, // Reduced height for a more compact look
-        padding: const EdgeInsets.all(12), // Adjusted padding for a more compact card
+        width: MediaQuery.of(context).size.width * 0.44,
+        height: 120,
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(12)),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 22, color: Colors.white), // Slightly smaller icon for compactness
+            Icon(icon, size: 22, color: Colors.white),
             const SizedBox(height: 8),
             Text(
               title,
@@ -306,7 +349,7 @@ class _UserDashboardState extends State<UserDashboard> {
               style: const TextStyle(
                 fontWeight: FontWeight.w600,
                 color: Colors.white,
-                fontSize: 14, // Adjusted font size to fit the new card size
+                fontSize: 14,
               ),
             ),
           ],
@@ -325,13 +368,13 @@ class _UserDashboardState extends State<UserDashboard> {
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications),
-            onPressed: () => _showNotificationPopup(context), // Show notifications on click
+            onPressed: () => _showNotificationPopup(context),
           ),
         ],
       ),
       drawer: _buildDrawer(context),
       body: isLoading
-          ? const Center(child: CircularProgressIndicator()) // Show loading indicator while data is being fetched
+          ? const Center(child: CircularProgressIndicator()) // Show loading indicator
           : SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),

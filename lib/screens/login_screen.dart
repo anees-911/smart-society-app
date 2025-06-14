@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'forgot_password.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -69,27 +70,31 @@ class _LoginScreenState extends State<LoginScreen> {
         password: _passwordController.text.trim(),
       );
 
-      DocumentSnapshot userDoc = await _firestore
+      final userDoc = await _firestore
           .collection('users')
           .doc(userCredential.user!.uid)
           .get();
 
-      if (!userDoc.exists || !userDoc.data()!.toString().contains('role')) {
-        throw Exception("User role not found in Firestore.");
+      final data = userDoc.data();
+      if (data == null || data is! Map || !data.containsKey('role')) {
+        throw Exception("User document missing or 'role' field not found.");
       }
 
-      String role = userDoc['role'];
-
-      if (_role == 'admin' && role != 'admin') {
-        throw Exception("You are not authorized to log in as an admin.");
-      } else if (_role == 'user' && role != 'user') {
-        throw Exception("You are not authorized to log in as a user.");
+      final role = data['role'];
+      if (role is! String || (role != 'admin' && role != 'user')) {
+        throw Exception("Invalid or unauthorized user role: $role");
       }
 
-      Navigator.pushReplacementNamed(
-        context,
-        _role == 'admin' ? '/adminDashboard' : '/userDashboard',
-      );
+      final prefs = await SharedPreferences.getInstance();
+      prefs.setBool('isLoggedIn', true);
+      prefs.setString('userEmail', userCredential.user!.email!);
+      prefs.setString('userRole', role);
+
+      if (role == 'admin') {
+        Navigator.pushReplacementNamed(context, '/adminDashboard');
+      } else {
+        Navigator.pushReplacementNamed(context, '/userDashboard');
+      }
     } catch (e) {
       _showMessage('Login Failed: ${e.toString().replaceAll("Exception: ", "")}');
     } finally {
@@ -109,7 +114,6 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final paddingHorizontal = screenWidth * 0.1;
 
     return WillPopScope(
       onWillPop: () async => false,
@@ -272,7 +276,6 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ),
                                   ),
                                 ),
-
                             ],
                           ),
                         ),

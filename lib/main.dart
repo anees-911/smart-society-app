@@ -3,7 +3,7 @@ import 'firebase_options.dart';
 import 'package:firebase_core/firebase_core.dart';
 
 // Screens
-import 'screens/splash_screen.dart';  
+import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/signup_screen.dart';
 import 'screens/admin_dashboard.dart';
@@ -31,7 +31,7 @@ class SmartSocietyApp extends StatelessWidget {
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
       ),
-      home: const SplashScreen(),
+      home: const SplashScreen(), // Start with the SplashScreen
       routes: {
         '/login': (context) => const LoginScreen(),
         '/signup': (context) => const SignUpScreen(),
